@@ -1,0 +1,40 @@
+package fr.pantheonsorbonne.cri;
+
+import java.io.IOException;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+@WebServlet(name = "FormServlet", urlPatterns = "/calculateServlet")
+public class FormServlet extends HttpServlet {
+
+    @Override
+    protected void doGet(HttpServletRequest request, 
+      HttpServletResponse response)
+      throws ServletException, IOException {
+
+        String height = request.getParameter("height");
+        String weight = request.getParameter("weight");
+
+        try {
+            double bmi = calculateBMI(
+              Double.parseDouble(weight), 
+              Double.parseDouble(height));
+            
+            request.setAttribute("bmi", bmi);
+            response.setHeader("Test", "Success");
+            response.setHeader("BMI", String.valueOf(bmi));
+
+            request.getRequestDispatcher("/WEB-INF/jsp/index.jsp").forward(request, response);
+        } catch (Exception e) {
+           request.getRequestDispatcher("/WEB-INF/jsp/index.jsp").forward(request, response);
+        }
+    }
+
+    private Double calculateBMI(Double weight, Double height) {
+        return weight / (height * height);
+    }
+}
