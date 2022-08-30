@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.Part;
+import org.apache.commons.codec.binary.Base64;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.util.reflect.ByteArrayClassLoader;
 import org.codehaus.janino.SimpleCompiler;
@@ -14,7 +15,7 @@ import org.codehaus.janino.SimpleCompiler;
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
@@ -25,7 +26,7 @@ import java.util.stream.Collectors;
 /**
  * Hello world!
  */
-@WebServlet("/")
+@WebServlet("")
 @MultipartConfig
 public class App extends HttpServlet {
 
@@ -48,22 +49,23 @@ public class App extends HttpServlet {
 
         Map<String, String> payLoad = new HashMap<>();
         if (code != null) {
-            payLoad.put("code", new String(Base64.getDecoder().decode(code)));
+
+            payLoad.put("code", new String(java.util.Base64.getDecoder().decode(code)));
         }
         for (Part part : request.getParts()) {
             try (InputStream is = part.getInputStream()) {
                 try (BufferedReader r = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
-                    String decodedLine = new String(Base64.getDecoder().decode(r.lines().collect(Collectors.joining("\n"))));
-                    payLoad.put(part.getName(), decodedLine);
+                    String decodedLine = new String(java.util.Base64.getDecoder().decode( r.lines().collect(Collectors.joining("\n"))));
+                    request.setAttribute(part.getName(), decodedLine);
+                    payLoad.put(part.getName(),decodedLine);
                 }
             }
         }
-        code = payLoad.get("code");
-        request.setAttribute("code", code);
+
 
         SimpleCompiler cookable = new SimpleCompiler();
         try {
-            cookable.cook(new StringReader(code));
+            cookable.cook(new StringReader(payLoad.get("code")));
             var classFile = cookable.getClassFiles()[0];
             ClassLoader cl = (ByteArrayClassLoader) cookable.getClassLoader();
             try {
@@ -88,8 +90,18 @@ public class App extends HttpServlet {
 
 
                 outPR.flush();
-                request.setAttribute("result", new String(bos.toByteArray()));
-                request.setAttribute("success", "true");
+
+                String executionStdout=new String(bos.toByteArray());
+                if((!payLoad.containsKey("answers")) || payLoad.get("answers").isBlank() || payLoad.get("answers").trim().equals(executionStdout.trim())){
+                    request.setAttribute("success", "true");
+                    request.setAttribute("result", executionStdout);
+                }
+                else{
+                    request.setAttribute("success", "false");
+                    request.setAttribute("result", "Your code output doesn't match the expected output \n" + executionStdout);
+                }
+
+
 
             } catch (NoSuchMethodException e) {
                 request.setAttribute("success", "false");
