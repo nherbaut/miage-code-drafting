@@ -49,7 +49,7 @@
                         </c:when>
                         <c:when test="${success==false}">
                             <div class="alert alert-danger" role="alert">
-                                Something when wrong
+                                Something went wrong
                             </div>
                         </c:when>
                         <c:otherwise>
@@ -69,7 +69,7 @@
         </div>
 
         <div class="row gx-5">
-            <input type="submit" onclick="onSubmit()" value="Run">
+            <input class="btn btn-primary" type="submit" onclick="onSubmit()" value="Run">
         </div>
 
 
@@ -95,11 +95,21 @@
         enableBasicAutocompletion: true
     });
 
+    editor.focus();
+    editor.navigateFileEnd();
+
+
     function onSubmit() {
         var code = ace.edit("editor").getValue();
         document.querySelector("#code").value = window.btoa(code);
-        submit();
+        document.querySelector("form").submit();
     }
+
+    document.addEventListener('keyup', function(e) {
+        if (e.ctrlKey && e.code == "Enter") {
+            onSubmit();
+        }}, false) ;
+
 
 </script>
 </html>

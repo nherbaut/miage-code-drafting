@@ -17,6 +17,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Timer;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 
@@ -69,7 +71,22 @@ public class App extends HttpServlet {
                 ByteArrayOutputStream bos = new ByteArrayOutputStream();
                 PrintStream outPR = new PrintStream(bos);
                 System.setOut(outPR);
-                res.invoke(null, (Object) new String[0]);
+
+                ExecutorService executor = Executors.newSingleThreadExecutor();
+                Future future = executor.submit(() -> res.invoke(null, (Object) new String[0]));
+                try{
+                    future.get(10, TimeUnit.SECONDS);
+                }
+                catch (TimeoutException e){
+                    future.cancel(true);
+                    throw e;
+                }
+
+                finally {
+                    executor.shutdown();
+                }
+
+
                 outPR.flush();
                 request.setAttribute("result", new String(bos.toByteArray()));
                 request.setAttribute("success", "true");
@@ -78,9 +95,13 @@ public class App extends HttpServlet {
                 request.setAttribute("success", "false");
                 request.setAttribute("result", "Make sure you add a public static void main(String ...args) method to your class");
             }
+            catch (TimeoutException e){
+                request.setAttribute("success", "false");
+                request.setAttribute("result", "Your program took too long to complete (more that the timeout threshold), execution canceled. Watch out for infinite loops");
+            }
 
 
-        } catch (CompileException | ClassNotFoundException | IllegalAccessException | InvocationTargetException e1) {
+        } catch (Exception e1) {
             request.setAttribute("success", "false");
             request.setAttribute("result", e1.getLocalizedMessage());
 
