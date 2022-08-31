@@ -1,5 +1,6 @@
 package fr.pantheonsorbonne.cri;
 
+import com.google.common.io.MoreFiles;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
@@ -7,19 +8,21 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.Part;
-import org.apache.commons.codec.binary.Base64;
 import org.codehaus.commons.compiler.CompileException;
-import org.codehaus.commons.compiler.util.reflect.ByteArrayClassLoader;
 import org.codehaus.janino.SimpleCompiler;
+import org.codehaus.janino.util.ClassFile;
 
 import java.io.*;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
-
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Timer;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 
@@ -38,6 +41,11 @@ public class App extends HttpServlet {
         if ("dHJ1ZQ==".equals(run)) {
             doPost(request, response);
         } else {
+            String code = request.getParameter("code");
+            if (code != null) {
+                code = new String(java.util.Base64.getDecoder().decode(code));
+            }
+            request.setAttribute("code", code);
             request.getRequestDispatcher("/WEB-INF/jsp/index.jsp").forward(request, response);
         }
     }
@@ -52,77 +60,115 @@ public class App extends HttpServlet {
 
             payLoad.put("code", new String(java.util.Base64.getDecoder().decode(code)));
         }
-        for (Part part : request.getParts()) {
-            try (InputStream is = part.getInputStream()) {
-                try (BufferedReader r = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
-                    String decodedLine = new String(java.util.Base64.getDecoder().decode( r.lines().collect(Collectors.joining("\n"))));
-                    request.setAttribute(part.getName(), decodedLine);
-                    payLoad.put(part.getName(),decodedLine);
+        if (request.getContentType() != null && !request.getContentType().isBlank() && request.getContentType().contains("multipart/form-data")) {
+            for (Part part : request.getParts()) {
+                try (InputStream is = part.getInputStream()) {
+                    try (BufferedReader r = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                        String decodedLine = new String(java.util.Base64.getDecoder().decode(r.lines().collect(Collectors.joining("\n"))));
+                        request.setAttribute(part.getName(), decodedLine);
+                        payLoad.put(part.getName(), decodedLine);
+                    }
                 }
             }
         }
 
 
         SimpleCompiler cookable = new SimpleCompiler();
+        Path tmpDir = Files.createTempDirectory("compiledClasses");
         try {
             cookable.cook(new StringReader(payLoad.get("code")));
             var classFile = cookable.getClassFiles()[0];
-            ClassLoader cl = (ByteArrayClassLoader) cookable.getClassLoader();
+
+
             try {
-                var res = cl.loadClass(classFile.getThisClassName()).getMethod("main", String[].class);
-                ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                PrintStream outPR = new PrintStream(bos);
-                System.setOut(outPR);
-
-                ExecutorService executor = Executors.newSingleThreadExecutor();
-                Future future = executor.submit(() -> res.invoke(null, (Object) new String[0]));
-                try{
-                    future.get(10, TimeUnit.SECONDS);
+                for (ClassFile myClassFile : cookable.getClassFiles()) {
+                    try (BufferedOutputStream os = new BufferedOutputStream(new FileOutputStream(Path.of(tmpDir.toString(), myClassFile.getThisClassName() + ".class").toFile()))) {
+                        os.write(myClassFile.toByteArray());
+                    }
                 }
-                catch (TimeoutException e){
-                    future.cancel(true);
-                    throw e;
+                ProcessBuilder pb = new ProcessBuilder();
+                pb.directory(tmpDir.toFile());
+                pb.command("java", "-cp", tmpDir.toAbsolutePath().toString(), classFile.getThisClassName());
+                long deadline = System.currentTimeMillis() + 10 * 1000;
+                Process pr = pb.start();
+                String executionStdout;
+                String executionStderr;
+                while (pr.isAlive() && System.currentTimeMillis() < deadline) {
+                    try {
+                        Thread.sleep(100, 0);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+
+                    }
                 }
 
-                finally {
-                    executor.shutdown();
+                if (pr.isAlive()) {
+
+                    executionStdout = getConsoleOutput(pr.getInputStream());
+                    pr.destroy();
+                    throw new TimeoutException(executionStdout);
+                }
+                executionStdout = getConsoleOutput(pr.getInputStream());
+                executionStderr = getConsoleOutput(pr.getErrorStream());
+
+                if (pr.exitValue() != 0) {
+                    throw new Exception("process exited with \n message:" + executionStderr + "\n output:" + executionStdout);
                 }
 
 
-                outPR.flush();
-
-                String executionStdout=new String(bos.toByteArray());
-                if((!payLoad.containsKey("answers")) || payLoad.get("answers").isBlank() || payLoad.get("answers").trim().equals(executionStdout.trim())){
+                if ((!payLoad.containsKey("answers")) || payLoad.get("answers").isBlank() || payLoad.get("answers").trim().equals(executionStdout.trim())) {
                     request.setAttribute("success", "true");
                     request.setAttribute("result", executionStdout);
-                }
-                else{
+                } else {
                     request.setAttribute("success", "false");
                     request.setAttribute("result", "Your code output doesn't match the expected output \n" + executionStdout);
                 }
 
 
-
-            } catch (NoSuchMethodException e) {
+            } catch (TimeoutException e) {
                 request.setAttribute("success", "false");
-                request.setAttribute("result", "Make sure you add a public static void main(String ...args) method to your class");
-            }
-            catch (TimeoutException e){
+                request.setAttribute("result", "Your program took too long to complete (more that the timeout threshold), execution canceled. Watch out for infinite loops\n" + e.getLocalizedMessage());
+            } catch (
+                    Exception e1) {
                 request.setAttribute("success", "false");
-                request.setAttribute("result", "Your program took too long to complete (more that the timeout threshold), execution canceled. Watch out for infinite loops");
+                request.setAttribute("result", e1.getLocalizedMessage());
+
             }
 
+            request.getRequestDispatcher("/WEB-INF/jsp/index.jsp").
 
-        } catch (Exception e1) {
-            request.setAttribute("success", "false");
-            request.setAttribute("result", e1.getLocalizedMessage());
+                    forward(request, response);
 
         }
+        catch (CompileException e) {
+            request.setAttribute("success", "false");
+            request.setAttribute("result", "Your program failed to compile:\n" + e.getLocalizedMessage());
+        }
+        finally {
+            MoreFiles.deleteRecursively(tmpDir);
+        }
 
-        request.getRequestDispatcher("/WEB-INF/jsp/index.jsp").forward(request, response);
 
-        /**/
+    }
 
+    private String getConsoleOutput(InputStream inputStream) throws IOException {
+        ExecutorService es = Executors.newSingleThreadExecutor();
+        AtomicReference<String> executionStdout = new AtomicReference<>();
+        es.submit(() -> {
 
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+                executionStdout.set(reader.lines().filter(l -> l != null).collect(Collectors.joining("\n")));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+        try {
+            es.awaitTermination(100, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            return "<<error: can't read inputstream";
+        }
+        es.shutdown();
+        String res = executionStdout.get();
+        return res != null ? res : "";
     }
 }
