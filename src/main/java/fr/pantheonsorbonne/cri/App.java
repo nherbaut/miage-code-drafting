@@ -37,6 +37,10 @@ public class App extends HttpServlet {
     protected void doGet(HttpServletRequest request,
                          HttpServletResponse response) throws ServletException, IOException {
         String run = request.getParameter("run");
+        String gistId = request.getParameter("gistId");
+        if(gistId!=null){
+            request.setAttribute("gistId", gistId);
+        }
         //dHJ1ZQ== is shorthand for true in base64
         if ("dHJ1ZQ==".equals(run)) {
             doPost(request, response);
@@ -46,6 +50,7 @@ public class App extends HttpServlet {
                 code = new String(java.util.Base64.getDecoder().decode(code));
             }
             request.setAttribute("code", code);
+            request.setAttribute("client_id",System.getenv("GH_CLIENT_ID"));
             request.getRequestDispatcher("/WEB-INF/jsp/index.jsp").forward(request, response);
         }
     }
@@ -54,7 +59,7 @@ public class App extends HttpServlet {
     protected void doPost(HttpServletRequest request,
                           HttpServletResponse response) throws IOException, ServletException {
         String code = request.getParameter("code");
-
+        request.setAttribute("client_id",System.getenv("GH_CLIENT_ID"));
         Map<String, String> payLoad = new HashMap<>();
         if (code != null) {
 

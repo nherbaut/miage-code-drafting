@@ -69,8 +69,18 @@
             <div class="col">
                 <div id="editor" style="width: 100%; height: 500px"><c:out value="${code}"/></div>
                 <input type="button" value="auth" id="ghauth">
-                <input type="button" value="save" id="gistsave">
-                <input type="button" value="share" id="gistshare" hidden>
+
+
+                <c:choose>
+                    <c:when test="${empty gistId}">
+                        <input type="button" value="save" id="gistsave">
+                    </c:when>
+                    <c:otherwise>
+                        <input type="button" value="update" id="gistupdate">
+                    </c:otherwise>
+                </c:choose>
+                <input type="button" value="link" id="gistshare" hidden>
+
 
             </div>
             <div class="col">
@@ -112,6 +122,7 @@
             <textarea readonly id="answers">${answers}</textarea>
             <textarea readonly class="answers" hidden name="answers"></textarea>
 
+
         </div>
 
 
@@ -143,30 +154,60 @@
             }
         }).then(response => {
             window.open(response.data.html_url, "_blank");
-            document.querySelector("#gistshare").setAttribute("share_link", new URL("?gistId=" + response.data.id, document.location).href)
+            const gistUrl=new URL("?gistId=" + response.data.id, document.location).href;
+            document.querySelector("#gistshare").setAttribute("share_link", gistUrl)
             document.querySelector("#gistshare").hidden = false;
+            window.location=gistUrl;
+        });
+    };
+
+    export async function updateGistContent(content) {
+        const octokit = new Octokit({
+            auth: localStorage.getItem("access_token")
+        })
+
+        await octokit.request('PATCH /gists/{gist_id}', {
+            gist_id: "${gistId}",
+            description: 'An update to a gist',
+            'public': false,
+            files: {
+                'Main.java': {
+                    content: content
+                }
+
+            }
+        }).then(response => {
+            alert("Your gist have been updated");
         });
     };
 
     document.querySelector("#ghauth").addEventListener("click",
         function githubAuth() {
-            window.open("https://github.com/login/oauth/authorize?client_id=8d43b464e1676dcbe7ae&scope=gist");
+            window.open("https://github.com/login/oauth/authorize?client_id=${client_id}=gist");
         });
-    document.querySelector("#gistsave").addEventListener("click",
+    document.querySelectorAll("#gistsave").forEach(e => e.addEventListener("click",
         function onGistSaveClicked() {
             createNewGist(ace.edit("editor").getValue());
         }
-    );
+    ));
 
-    document.querySelector("#gistshare").addEventListener("click",
+    document.querySelectorAll("#gistupdate").forEach(e => e.addEventListener("click",
+        function onGistUpdateClicked() {
+            updateGistContent(ace.edit("editor").getValue());
+        }
+    ));
+
+    document.querySelectorAll("#gistshare").forEach(e => e.addEventListener("click",
         function () {
             const imgURL = new URL("./resources/img/mcc-gist.png", document.location).href;
             const url = document.querySelector("#gistshare").getAttribute("share_link");
-            const clip = "[![Gist]("+imgURL+")]("+url+")";
+            const clip = url;
             navigator.clipboard.writeText(clip);
-            document.querySelector("#gistshare").hidden = true
+            const previousValue=document.querySelector("#gistshare").value;
+            document.querySelector("#gistshare").value="copied!"
+            setTimeout(function() { document.querySelector("#gistshare").value= previousValue}, 5000);
         }
-    );
+    ));
 
 
 </script>
@@ -194,7 +235,7 @@
     editor.setTheme("ace/theme/monokai");
     editor.session.setMode("ace/mode/java");
     editor.setOptions({
-        enableBasicAutocompletion: true,
+
         fontSize: "14pt"
     });
 
@@ -218,18 +259,18 @@
         const gist = await octokit.request('GET /gists/{gist_id}', {
             gist_id: gistId
         });
-        ace.edit("editor").setValue(Object.entries(gist.data.files).find(entry => entry[1].language == "Java")[1].content, -1);
+        ace.edit("editor").getSession().setValue(Object.entries(gist.data.files).find(entry => entry[1].language == "Java")[1].content);
         const expectedOutput = Object.entries(gist.data.files).find(entry => entry[1].filename == "answers.txt")[1].content;
         if (expectedOutput != null) {
-            document.querySelector('#answers').value =
-                expectedOutput;
+            document.querySelector('#answers').value = expectedOutput;
             document.querySelector("#expected-output").hidden = false;
         }
+        putBackCursorPosition();
 
 
     }
 
-    ace.edit("editor").setValue(js_beautify(ace.edit("editor").getValue(), {indent_size: 2}));
+    ace.edit("editor").getSession().setValue(js_beautify(ace.edit("editor").getValue(), {indent_size: 2}));
     putBackCursorPosition();
 </script>
 <script>
@@ -255,11 +296,16 @@
 
     window.addEventListener("load", function (e) {
         if (ace.edit("editor").getValue() == "") {
-            ace.edit("editor").setValue(localStorage.getItem("code"));
+            ace.edit("editor").getSession().setValue(localStorage.getItem("code"));
         }
         ace.edit("editor").on('change', e => {
             localStorage.setItem("code", ace.edit("editor").getValue());
         });
+        <c:if test="${not empty gistId}">
+        const gistUrl=new URL("?gistId=${gistId}", document.location).href;
+        document.querySelector("#gistshare").setAttribute("share_link", gistUrl);
+        document.querySelector("#gistshare").hidden=false;
+        </c:if>
     });
 
     function utf8_to_b64(str) {
