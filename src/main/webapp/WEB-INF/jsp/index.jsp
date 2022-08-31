@@ -27,10 +27,12 @@
     </script>
     <!-- Load the alternate CSS first ...
          in this case the Bootstrap-Dark Variant CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-dark-5@1.1.3/dist/css/bootstrap-night.min.css" rel="stylesheet" media="(prefers-color-scheme: dark)">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-dark-5@1.1.3/dist/css/bootstrap-night.min.css" rel="stylesheet"
+          media="(prefers-color-scheme: dark)">
     <!-- and then the primary CSS last ...
          in this case the (original) Bootstrap Variant CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-dark-5@1.1.3/dist/css/bootstrap.min.css" rel="stylesheet" media="(prefers-color-scheme: light)">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-dark-5@1.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          media="(prefers-color-scheme: light)">
 
 
     <style>
@@ -66,6 +68,10 @@
         <div class="row">
             <div class="col">
                 <div id="editor" style="width: 100%; height: 500px"><c:out value="${code}"/></div>
+                <input type="button" value="auth" id="ghauth">
+                <input type="button" value="save" id="gistsave">
+                <input type="button" value="share" id="gistshare" hidden>
+
             </div>
             <div class="col">
                 <c:choose>
@@ -111,6 +117,61 @@
 
     </div>
 </form>
+
+
+<script type="module">
+    import {Octokit, App} from "https://cdn.skypack.dev/octokit";
+
+    export async function createNewGist(content) {
+        const octokit = new Octokit({
+            auth: localStorage.getItem("access_token")
+        })
+
+        octokit.request('POST /gists', {
+            description: 'Created from MIAGE Code Crafting',
+            'public': false,
+            files: {
+                'Main.java': {
+                    content: content
+                },
+                'answers.txt': {
+                    content: "tbd"
+                },
+                'Comments.md': {
+                    content: "# Description \n## Teaching Goals\n## Hints"
+                }
+            }
+        }).then(response => {
+            window.open(response.data.html_url, "_blank");
+            document.querySelector("#gistshare").setAttribute("share_link", new URL("?gistId=" + response.data.id, document.location).href)
+            document.querySelector("#gistshare").hidden = false;
+        });
+    };
+
+    document.querySelector("#ghauth").addEventListener("click",
+        function githubAuth() {
+            window.open("https://github.com/login/oauth/authorize?client_id=8d43b464e1676dcbe7ae&scope=gist");
+        });
+    document.querySelector("#gistsave").addEventListener("click",
+        function onGistSaveClicked() {
+            createNewGist(ace.edit("editor").getValue());
+        }
+    );
+
+    document.querySelector("#gistshare").addEventListener("click",
+        function () {
+            const imgURL = new URL("./resources/img/mcc-gist.png", document.location).href;
+            const url = document.querySelector("#gistshare").getAttribute("share_link");
+            const clip = "[![Gist]("+imgURL+")]("+url+")";
+            navigator.clipboard.writeText(clip);
+            document.querySelector("#gistshare").hidden = true
+        }
+    );
+
+
+</script>
+
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.6.8/beautify.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.9.6/ace.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.9.6/ext-beautify.min.js"></script>
@@ -123,6 +184,8 @@
 
 </body>
 
+
+</script>
 <script type="module">
     import {putBackCursorPosition} from "./resources/js/cursor.js";
 
@@ -138,6 +201,8 @@
     editor.focus();
     putBackCursorPosition();
 </script>
+
+
 <script type="module">
     import {putBackCursorPosition} from "./resources/js/cursor.js";
     import {Octokit, App} from "https://cdn.skypack.dev/octokit";
@@ -164,13 +229,10 @@
 
     }
 
-    ace.edit("editor").setValue(js_beautify(ace.edit("editor").getValue(), {        indent_size: 2    }));
+    ace.edit("editor").setValue(js_beautify(ace.edit("editor").getValue(), {indent_size: 2}));
     putBackCursorPosition();
 </script>
 <script>
-
-
-    // load gist if any
 
 
     function onSubmit() {
@@ -191,12 +253,13 @@
     }, false);
 
 
-
-    window.addEventListener("load",function (e){
-        if(ace.edit("editor").getValue()==""){
+    window.addEventListener("load", function (e) {
+        if (ace.edit("editor").getValue() == "") {
             ace.edit("editor").setValue(localStorage.getItem("code"));
         }
-        ace.edit("editor").on('change', e => { localStorage.setItem("code",ace.edit("editor").getValue());});
+        ace.edit("editor").on('change', e => {
+            localStorage.setItem("code", ace.edit("editor").getValue());
+        });
     });
 
     function utf8_to_b64(str) {
