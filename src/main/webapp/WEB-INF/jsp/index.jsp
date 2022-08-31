@@ -12,9 +12,26 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Title</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
-          integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <meta name="color-scheme" content="light dark">
+    <title>Miage Code Crafting</title>
+
+
+    <script>
+        if (window.matchMedia("(prefers-color-scheme: dark)").media === "not all") {
+            document.documentElement.style.display = "none";
+            document.head.insertAdjacentHTML(
+                "beforeend",
+                "<link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css\" rel=\"stylesheet\" integrity=\"sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC\" crossorigin=\"anonymous\">"
+            );
+        }
+    </script>
+    <!-- Load the alternate CSS first ...
+         in this case the Bootstrap-Dark Variant CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-dark-5@1.1.3/dist/css/bootstrap-night.min.css" rel="stylesheet" media="(prefers-color-scheme: dark)">
+    <!-- and then the primary CSS last ...
+         in this case the (original) Bootstrap Variant CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-dark-5@1.1.3/dist/css/bootstrap.min.css" rel="stylesheet" media="(prefers-color-scheme: light)">
+
 
     <style>
 
@@ -99,7 +116,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.9.6/ext-beautify.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.9.6/mode-java.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.9.6/ext-language_tools.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.9.6/theme-github.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.9.6/theme-monokai.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
         crossorigin="anonymous"></script>
@@ -111,7 +128,7 @@
 
     ace.require("ace/ext/language_tools");
     export const editor = ace.edit("editor");
-    editor.setTheme("ace/theme/tomorrow_night");
+    editor.setTheme("ace/theme/monokai");
     editor.session.setMode("ace/mode/java");
     editor.setOptions({
         enableBasicAutocompletion: true,
@@ -143,11 +160,12 @@
                 expectedOutput;
             document.querySelector("#expected-output").hidden = false;
         }
-        putBackCursorPosition();
+
 
     }
 
     ace.edit("editor").setValue(js_beautify(ace.edit("editor").getValue(), {        indent_size: 2    }));
+    putBackCursorPosition();
 </script>
 <script>
 
@@ -169,7 +187,17 @@
         if (e.ctrlKey && e.code == "Enter") {
             onSubmit();
         }
+
     }, false);
+
+
+
+    window.addEventListener("load",function (e){
+        if(ace.edit("editor").getValue()==""){
+            ace.edit("editor").setValue(localStorage.getItem("code"));
+        }
+        ace.edit("editor").on('change', e => { localStorage.setItem("code",ace.edit("editor").getValue());});
+    });
 
     function utf8_to_b64(str) {
         return window.btoa(unescape(encodeURIComponent(str)));

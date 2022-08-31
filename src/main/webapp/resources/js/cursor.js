@@ -1,6 +1,6 @@
 export  function putBackCursorPosition() {
 
-    if (localStorage.getItem("position") != null) {
+    if (localStorage.getItem("position-row") != null) {
         const row = localStorage.getItem("position-row");
         const column = localStorage.getItem("position-column");
         ace.edit("editor").moveCursorTo(row,column);

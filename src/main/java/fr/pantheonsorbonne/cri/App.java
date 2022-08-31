@@ -135,18 +135,16 @@ public class App extends HttpServlet {
 
             }
 
-            request.getRequestDispatcher("/WEB-INF/jsp/index.jsp").
 
-                    forward(request, response);
-
-        }
-        catch (CompileException e) {
+        } catch (CompileException e) {
             request.setAttribute("success", "false");
             request.setAttribute("result", "Your program failed to compile:\n" + e.getLocalizedMessage());
-        }
-        finally {
+        } finally {
             MoreFiles.deleteRecursively(tmpDir);
         }
+
+        request.getRequestDispatcher("/WEB-INF/jsp/index.jsp").
+                forward(request, response);
 
 
     }
