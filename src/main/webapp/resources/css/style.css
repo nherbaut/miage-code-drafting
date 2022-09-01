@@ -1,0 +1,27 @@
+#main-container {
+    padding: 0;
+    margin:0;
+    max-width: 95%;
+    width:95%;
+}
+
+
+
+h1.main{
+    font-size: small;
+}
+
+textarea {
+    width: 100%;
+    height: 426px;
+}
+
+#answers {
+    height: 150px;
+}
+
+#btn-run {
+    margin-top: 5px;
+    width: 100%;
+}
+

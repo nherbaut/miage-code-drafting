@@ -25,6 +25,7 @@
             );
         }
     </script>
+
     <!-- Load the alternate CSS first ...
          in this case the Bootstrap-Dark Variant CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-dark-5@1.1.3/dist/css/bootstrap-night.min.css" rel="stylesheet"
@@ -35,38 +36,19 @@
           media="(prefers-color-scheme: light)">
 
 
-    <style>
+    <link href="./resources/css/style.css" rel="stylesheet">
 
 
-    </style>
-
-    <style>
-        textarea {
-            width: 100%;
-            height: 426px;
-        }
-
-        #answers {
-            height: 150px;
-        }
-
-        #btn-run {
-            margin-top: 5px;
-            width: 100%;
-        }
-
-
-    </style>
 </head>
 <body>
 <form method="POST" action="./" enctype="multipart/form-data">
-    <div class="container container-fluid">
+    <div id="main-container" class="container">
         <div class="row">
-            <h1 class="display-1">MIAGE Code Crafting</h1>
+            <h1 class="main">MIAGE Code Crafting</h1>
         </div>
 
         <div class="row">
-            <div class="col">
+            <div class="col col-code">
                 <div id="editor" style="width: 100%; height: 500px"><c:out value="${code}"/></div>
                 <input type="button" value="auth" id="ghauth">
 
@@ -83,7 +65,7 @@
 
 
             </div>
-            <div class="col">
+            <div class="col col-res">
                 <c:choose>
                     <c:when test="${empty success}">
                         <div class="alert alert-secondary" role="alert">
@@ -183,7 +165,7 @@
 
     document.querySelector("#ghauth").addEventListener("click",
         function githubAuth() {
-            window.open("https://github.com/login/oauth/authorize?client_id=${client_id}=gist");
+            window.open("https://github.com/login/oauth/authorize?client_id=${client_id}");
         });
     document.querySelectorAll("#gistsave").forEach(e => e.addEventListener("click",
         function onGistSaveClicked() {
@@ -236,7 +218,7 @@
     editor.session.setMode("ace/mode/java");
     editor.setOptions({
 
-        fontSize: "14pt"
+        fontSize: "11pt"
     });
 
     editor.focus();
