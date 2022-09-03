@@ -25,3 +25,7 @@ textarea {
     width: 100%;
 }
 
+.ace_editor, .ace_editor div {
+    font-family:monospace;
+}
+

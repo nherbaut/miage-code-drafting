@@ -129,16 +129,17 @@
 
     ace.require("ace/ext/language_tools");
     export const editor = ace.edit("editor");
-    editor.setTheme("ace/theme/monokai");
+    //editor.setTheme("ace/theme/monokai");
     editor.session.setMode("ace/mode/java");
     editor.setOptions({
 
-        fontSize: "11pt",
+        fontSize: "12pt",
         enableBasicAutocompletion: true
     });
 
-    editor.focus();
+    //editor.focus();
     putBackCursorPosition();
+
 </script>
 
 
@@ -154,7 +155,7 @@
     const octokit = new Octokit({});
 
 
-    if (gistId != null && updated == null || updated == false) {
+    if (gistId != null && (updated == null || updated == false)) {
         const gist = await octokit.request('GET /gists/{gist_id}', {
             gist_id: gistId
         });
@@ -165,8 +166,9 @@
             document.querySelector("#expected-output").hidden = false;
         }
         putBackCursorPosition();
-
-
+    }
+    if(updated=="true" && document.querySelector("#answers").value!=""){
+        document.querySelector("#expected-output").hidden = false;
     }
 
     ace.edit("editor").getSession().setValue(js_beautify(ace.edit("editor").getValue(), {indent_size: 2}));
