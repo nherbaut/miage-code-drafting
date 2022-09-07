@@ -110,9 +110,7 @@
     </form>
 
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.6.8/beautify.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.9.6/ace.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.9.6/ext-beautify.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.9.6/mode-java.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.9.6/ext-language_tools.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.9.6/theme-monokai.min.js"></script>
@@ -171,7 +169,6 @@
         document.querySelector("#expected-output").hidden = false;
     }
 
-    ace.edit("editor").getSession().setValue(js_beautify(ace.edit("editor").getValue(), {indent_size: 2}));
     putBackCursorPosition();
 </script>
 
