@@ -6,8 +6,10 @@ import org.codehaus.janino.SimpleCompiler;
 import org.codehaus.janino.util.ClassFile;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -63,8 +65,8 @@ public class JavaFacade implements AutoCloseable {
         SimpleCompiler cookable = new SimpleCompiler();
 
         cookable.cook(new StringReader(payLoad.get("code")));
-
-        var classFile = cookable.getClassFiles()[0];
+        //there should be only 1 non $ (internal) class
+        var classFile = Arrays.stream(cookable.getClassFiles()).filter(c -> !c.getThisClassName().contains("$")).findFirst().orElseThrow();
         for (ClassFile myClassFile : cookable.getClassFiles()) {
             try (BufferedOutputStream os = new BufferedOutputStream(new FileOutputStream(Path.of(tmpDir.toString(), myClassFile.getThisClassName() + ".class").toFile()))) {
                 os.write(myClassFile.toByteArray());
@@ -104,7 +106,7 @@ public class JavaFacade implements AutoCloseable {
         AtomicReference<String> executionStdout = new AtomicReference<>();
         es.submit(() -> {
 
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
                 executionStdout.set(reader.lines().filter(l -> l != null).collect(Collectors.joining("\n")));
             } catch (IOException e) {
                 throw new RuntimeException(e);

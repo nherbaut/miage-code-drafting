@@ -129,7 +129,7 @@
 
     ace.require("ace/ext/language_tools");
     export const editor = ace.edit("editor");
-    //editor.setTheme("ace/theme/monokai");
+    editor.setTheme("ace/theme/monokai");
     editor.session.setMode("ace/mode/java");
     editor.setOptions({
 
