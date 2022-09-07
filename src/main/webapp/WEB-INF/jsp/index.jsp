@@ -35,10 +35,10 @@
 <body>
 <c:choose>
 <c:when test="${empty gistId}">
-<form method="POST" action="./" enctype="multipart/form-data">
+<form id="theform" method="POST" action="./" enctype="multipart/form-data">
     </c:when>
     <c:otherwise>
-    <form method="POST" action="./?gistId=${gistId}&updated=true" enctype="multipart/form-data">
+    <form id="theform" method="POST" action="./?gistId=${gistId}&updated=true" enctype="multipart/form-data">
         <input name="gistId" value="${gistId}" hidden>
         </c:otherwise>
         </c:choose>
@@ -150,6 +150,7 @@
     const urlParams = new URLSearchParams(queryString);
     const gistId = urlParams.get('gistId')
     const updated = urlParams.get('updated')
+
     const octokit = new Octokit({});
 
 
@@ -168,6 +169,8 @@
     if(updated=="true" && document.querySelector("#answers").value!=""){
         document.querySelector("#expected-output").hidden = false;
     }
+
+
 
     putBackCursorPosition();
 </script>
@@ -201,6 +204,11 @@
     window.addEventListener("load", function (e) {
 
         // update gist callback
+        const urlParams = new URLSearchParams(window.location.search);
+        if(urlParams.get('hideanswers')=="true"){
+            document.querySelector("#theform").setAttribute("action",document.querySelector("#theform").getAttribute("action")+"&hideanswers=true");
+            document.querySelector("#expected-output").hidden=true;
+        }
 
 
         // enable save if github is authorized
@@ -234,9 +242,7 @@
         }
 
 
-        if (ace.edit("editor").getValue() == "" && localStorage.getItem("code") != null) {
-            ace.edit("editor").getSession().setValue(localStorage.getItem("code"));
-        }
+
         ace.edit("editor").on('change', e => {
             localStorage.setItem("code", ace.edit("editor").getValue());
         });
@@ -265,6 +271,9 @@
 
         </c:when>
         <c:otherwise>
+        if (ace.edit("editor").getValue() == "" && localStorage.getItem("code") != null) {
+            ace.edit("editor").getSession().setValue(localStorage.getItem("code"));
+        }
         document.querySelector("#gistsave").disabled = false;
         </c:otherwise>
         </c:choose>
