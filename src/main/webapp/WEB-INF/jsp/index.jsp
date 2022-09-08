@@ -51,23 +51,40 @@
             <div class="row">
                 <div class="col col-code">
                     <div id="editor" style="width: 100%; height: 500px"><c:out value="${code}"/></div>
-                    <button type="button" class="btn btn-sm btn-success" id="ghauth">authorize github</button>
-
-
-                    <c:choose>
-                        <c:when test="${empty gistId}">
-                            <button type="button" class="btn btn-sm btn-primary" id="gistsave" disabled>save</button>
-                        </c:when>
-                        <c:otherwise>
-                            <button type="button" class="btn btn-sm btn-primary" id="gistupdate" hidden>update on github
+                    <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-primary dropdown-toggle" type="button"
+                                    data-bs-toggle="dropdown" aria-expanded="false">GitHub Actions
                             </button>
-                            <button type="button" class="btn btn-sm btn-primary" id="gistshare" hidden>copy link
-                            </button>
-                            <button type="button" class="btn btn-sm btn-primary" id="gisthtmlurl" hidden>see on github
-                            </button>
-                        </c:otherwise>
-                    </c:choose>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item btn btn-secondary" href="#" id="ghauth">authorize github</a></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                <c:choose>
+                                    <c:when test="${empty gistId}">
+                                        <li><a class="dropdown-item btn btn-secondary" id="gistsave" disabled>Save as new Gist
+                                        </a></li>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <li><a class="dropdown-item btn btn-secondary" id="gistupdate" hidden>Update Gist
 
+                                        </a></li>
+                                        <li>
+                                            <a class="dropdown-item btn btn-secondary" id="gistshare" hidden>Open in new tab
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item btn btn-secondary" id="gisthtmlurl" hidden>Open original Gist
+                                            </a>
+                                        </li>
+                                    </c:otherwise>
+                                </c:choose>
+                            </ul>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-primary" id="save-maven">Download as Maven
+                        </button>
+                    </div>
 
                 </div>
                 <div class="col col-res">
@@ -113,10 +130,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.9.6/ace.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.9.6/mode-java.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.9.6/ext-language_tools.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.9.6/theme-monokai.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.9.6/theme-textmate.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
             integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
             crossorigin="anonymous"></script>
+
 
 </body>
 
@@ -127,11 +145,11 @@
 
     ace.require("ace/ext/language_tools");
     export const editor = ace.edit("editor");
-    editor.setTheme("ace/theme/monokai");
+    editor.setTheme("ace/theme/textmate");
     editor.session.setMode("ace/mode/java");
     editor.setOptions({
 
-        fontSize: "12pt",
+        fontSize: "11pt",
         enableBasicAutocompletion: true
     });
 
@@ -166,10 +184,9 @@
         }
         putBackCursorPosition();
     }
-    if(updated=="true" && document.querySelector("#answers").value!=""){
+    if (updated == "true" && document.querySelector("#answers").value != "") {
         document.querySelector("#expected-output").hidden = false;
     }
-
 
 
     putBackCursorPosition();
@@ -200,14 +217,23 @@
 
     document.querySelector("#btn-run").addEventListener('click', onSubmit, false);
 
+    document.querySelector("#save-maven").addEventListener("click", function () {
+        const code = ace.edit("editor").getValue();
+        fetch("https://maven-project-factory.miage.dev",
+            //fetch("http://localhost:8080/maven",
+            {body: code, method: "POST"}).then(e => e.blob()).then(b => {
+            var file = window.URL.createObjectURL(b);
+            window.location.assign(file);
+        });
+    })
 
     window.addEventListener("load", function (e) {
 
         // update gist callback
         const urlParams = new URLSearchParams(window.location.search);
-        if(urlParams.get('hideanswers')=="true"){
-            document.querySelector("#theform").setAttribute("action",document.querySelector("#theform").getAttribute("action")+"&hideanswers=true");
-            document.querySelector("#expected-output").hidden=true;
+        if (urlParams.get('hideanswers') == "true") {
+            document.querySelector("#theform").setAttribute("action", document.querySelector("#theform").getAttribute("action") + "&hideanswers=true");
+            document.querySelector("#expected-output").hidden = true;
         }
 
 
@@ -242,7 +268,6 @@
         }
 
 
-
         ace.edit("editor").on('change', e => {
             localStorage.setItem("code", ace.edit("editor").getValue());
         });
@@ -254,12 +279,8 @@
         document.querySelector("#gisthtmlurl").hidden = false;
 
         document.querySelector("#gistshare").addEventListener("click", function () {
-            navigator.clipboard.writeText(new URL("?gistId=${gistId}", document.location).href);
-            const previousValue = document.querySelector("#gistshare").innerHTML;
-            document.querySelector("#gistshare").innerHTML = "copied!"
-            setTimeout(function () {
-                document.querySelector("#gistshare").innerHTML = previousValue
-            }, 2000);
+            window.open(new URL("?gistId=${gistId}", document.location).href, "_blank");
+
 
         });
         document.querySelector("#gisthtmlurl").addEventListener("click", function () {
@@ -286,6 +307,7 @@
     function b64_to_utf8(str) {
         return decodeURIComponent(escape(window.atob(str)));
     }
+
 
 </script>
 </html>

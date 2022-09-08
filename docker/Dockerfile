@@ -13,7 +13,6 @@ COPY --from=isolate_build /usr/local/etc/isolate /usr/local/etc/isolate
 COPY --from=isolate_build /usr/local/bin/isolate-check-environment /usr/local/bin/isolate-check-environment
 COPY --from=isolate_build /usr/local/bin/isolate /usr/local/bin/isolate
 
-COPY docker/isolate/bin/isolate /usr/local/bin/isolate
 COPY target/javarunner.war /usr/local/tomcat/webapps
 
 
