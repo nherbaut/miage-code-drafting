@@ -13,7 +13,7 @@ h1.main{
 
 textarea {
     width: 100%;
-    height: 426px;
+    height: 200px;
 }
 
 #answers {
@@ -21,7 +21,7 @@ textarea {
 }
 
 #btn-run {
-    margin-top: 5px;
+
     width: 100%;
 }
 

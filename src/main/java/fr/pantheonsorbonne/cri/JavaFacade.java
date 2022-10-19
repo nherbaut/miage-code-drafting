@@ -65,7 +65,7 @@ public class JavaFacade implements AutoCloseable {
         SimpleCompiler cookable = new SimpleCompiler();
 
         cookable.cook(new StringReader(payLoad.get("code")));
-        //there should be only 1 non $ (internal) class
+        //there should be only 1 non $ (intenal) class
         var classFile = Arrays.stream(cookable.getClassFiles()).filter(c -> !c.getThisClassName().contains("$")).findFirst().orElseThrow();
         for (ClassFile myClassFile : cookable.getClassFiles()) {
             try (BufferedOutputStream os = new BufferedOutputStream(new FileOutputStream(Path.of(tmpDir.toString(), myClassFile.getThisClassName() + ".class").toFile()))) {
@@ -96,7 +96,7 @@ public class JavaFacade implements AutoCloseable {
         processResult.put("out", getConsoleOutput(pr.getInputStream()));
         processResult.put("err", getConsoleOutput(pr.getErrorStream()));
         if (pr.exitValue() != 0) {
-            throw new ProcessExecutionError("process exited with \n message:" + processResult.get("err") + "\n output:" + processResult.get("out"));
+            throw new ProcessExecutionError("process exited with\n====================\n\nmessage(stderr):\n" + processResult.get("err") + "\n\n\n-------------------\n\noutput(stdout):\n" + processResult.get("out"));
         }
         return processResult;
     }

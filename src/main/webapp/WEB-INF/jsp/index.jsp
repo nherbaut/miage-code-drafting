@@ -50,65 +50,73 @@
 
             <div class="row">
                 <div class="col col-code">
-                    <div id="editor" style="width: 100%; height: 500px"><c:out value="${code}"/></div>
+                    <div id="editor" style="width: 100%; height: 350px"><c:out value="${code}"/></div>
                     <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
                         <div class="btn-group" role="group">
-                            <button class="btn btn-primary dropdown-toggle" type="button"
+                            <button class="btn btn-secondary dropdown-toggle" type="button"
                                     data-bs-toggle="dropdown" aria-expanded="false">GitHub Actions
                             </button>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item btn btn-secondary" href="#" id="ghauth">authorize github</a></li>
+                                <li><a class="dropdown-item btn btn-secondary" href="#" id="ghauth">authorize github</a>
+                                </li>
                                 <li>
                                     <hr class="dropdown-divider">
                                 </li>
                                 <c:choose>
                                     <c:when test="${empty gistId}">
-                                        <li><a class="dropdown-item btn btn-secondary" id="gistsave" disabled>Save as new Gist
+                                        <li><a class="dropdown-item btn btn-secondary" id="gistsave" disabled>Save as
+                                            new Gist
                                         </a></li>
                                     </c:when>
                                     <c:otherwise>
-                                        <li><a class="dropdown-item btn btn-secondary" id="gistupdate" hidden>Update Gist
+                                        <li><a class="dropdown-item btn btn-secondary" id="gistupdate" hidden>Update
+                                            Gist
 
                                         </a></li>
                                         <li>
-                                            <a class="dropdown-item btn btn-secondary" id="gistshare" hidden>Open in new tab
+                                            <a class="dropdown-item btn btn-secondary" id="gistshare" hidden>Open in new
+                                                tab
                                             </a>
                                         </li>
                                         <li>
-                                            <a class="dropdown-item btn btn-secondary" id="gisthtmlurl" hidden>Open original Gist
+                                            <a class="dropdown-item btn btn-secondary" id="gisthtmlurl" hidden>Open
+                                                original Gist
                                             </a>
                                         </li>
                                     </c:otherwise>
                                 </c:choose>
                             </ul>
                         </div>
-                        <button type="button" class="btn btn-sm btn-primary" id="save-maven">Download as Maven
+                        <button type="button" class="btn btn-sm btn-secondary" id="save-maven">Download as Maven
                         </button>
+                        <button type="button" id="btn-run" class="btn btn-sm btn-primary" type="submit">Run (CTRL+ENTER)</button>
                     </div>
 
                 </div>
-                <div class="col col-res">
-                    <c:choose>
-                        <c:when test="${empty success}">
-                            <div class="alert alert-secondary" role="alert">
-                                Ready to code!
-                            </div>
-                        </c:when>
-                        <c:when test="${success==false}">
-                            <div class="alert alert-danger" role="alert">
-                                Something went wrong
-                            </div>
-                        </c:when>
-                        <c:otherwise>
-                            <div class="alert alert-success" role="alert">
-                                Execution successful
-                            </div>
-                        </c:otherwise>
-                    </c:choose>
+                <div class="row">
+                    <div class="col col-res">
+                        <c:choose>
+                            <c:when test="${empty success}">
+                                <div class="alert alert-secondary" role="alert">
+                                    Ready to code!
+                                </div>
+                            </c:when>
+                            <c:when test="${success==false}">
+                                <div class="alert alert-danger" role="alert">
+                                    Something went wrong
+                                </div>
+                            </c:when>
+                            <c:otherwise>
+                                <div class="alert alert-success" role="alert">
+                                    Execution successful
+                                </div>
+                            </c:otherwise>
+                        </c:choose>
 
 
-                    <textarea readonly>${result}</textarea>
-                    <button id="btn-run" class="btn btn-primary " type="submit">Run (CTRL+ENTER)</button>
+                        <textarea readonly>${result}</textarea>
+
+                    </div>
                 </div>
                 <textarea name="code" id="code" hidden></textarea>
 

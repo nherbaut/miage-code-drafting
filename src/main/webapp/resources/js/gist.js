@@ -12,9 +12,6 @@ export async function createNewGist(content, access_token) {
             'Main.java': {
                 content: content
             },
-            'answers.txt': {
-                content: "tbd"
-            },
             'Comments.md': {
                 content: "# Description \n## Teaching Goals\n## Hints"
             }

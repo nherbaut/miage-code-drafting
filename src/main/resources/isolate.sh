@@ -29,12 +29,12 @@ isolate\
     #isolate -b$GID --cg -s --cleanup
   else
     echo ##### Runtime Info #######
-    cat $META_OUTPUT
+    #cat $META_OUTPUT
     echo ##### STDERR ##########
-    cat $ISOLATE_PATH/box/$ERR_FILE|grep message|cut -b 1-9  --complement
+    cat $ISOLATE_PATH/box/$ERR_FILE >&2
     echo ##### STDOUT ##########
     cat $ISOLATE_PATH/box/res.out|tail -n 1000
-    isolate -b$GID --cg --cleanup
+    #isolate -b$GID --cg --cleanup
     exit 26
   fi
 
