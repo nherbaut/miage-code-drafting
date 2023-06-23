@@ -1,4 +1,4 @@
-package fr.pantheonsorbonne.cri;
+package fr.pantheonsorbonne.cri.javarunner.servlet;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @WebServlet("/github/callback")
-public class GitHubAuth extends HttpServlet {
+public class GitHubAuthServlet extends HttpServlet {
 
     class ParameterStringBuilder {
         public static String getParamsString(Map<String, String> params)

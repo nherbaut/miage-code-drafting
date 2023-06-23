@@ -1,0 +1,16 @@
+i{
+    cursor: pointer;
+    font-size: 2rem;
+}
+i.bi-hourglass-split{
+    color: darkorange;
+}
+
+i.bi-emoji-smile-fill{
+    color: forestgreen;
+}
+
+i.bi-hourglass-top{
+    color: firebrick;
+
+}

@@ -1,4 +1,5 @@
-import {Octokit} from "https://cdn.skypack.dev/octokit";
+import {Octokit} from "https://esm.sh/octokit";
+
 
 export async function createNewGist(content, access_token) {
     const octokit = new Octokit({

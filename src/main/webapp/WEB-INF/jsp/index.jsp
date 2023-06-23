@@ -1,12 +1,16 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
     <meta name="color-scheme" content="light dark">
     <title>Miage Code Crafting</title>
-
+    <script
+            type="module"
+            src="https://cdn.jsdelivr.net/gh/zerodevx/zero-md@2/dist/zero-md.min.js"
+    ></script>
 
     <script>
         if (window.matchMedia("(prefers-color-scheme: dark)").media === "not all") {
@@ -45,7 +49,7 @@
 
         <div id="main-container" class="container">
             <div class="row">
-                <h1 class="main">MIAGE Code Crafting</h1>
+                <h1 class="main">MIAGE Code Crafting <span id="gist_title"></span></h1>
             </div>
 
             <div class="row">
@@ -89,7 +93,13 @@
                         </div>
                         <button type="button" class="btn btn-sm btn-secondary" id="save-maven">Download as Maven
                         </button>
-                        <button type="button" id="btn-run" class="btn btn-sm btn-primary" type="submit">Run (CTRL+ENTER)</button>
+                        <button type="button" id="btn-run" class="btn btn-sm btn-primary" type="submit">Run
+                            (CTRL+ENTER)
+                        </button>
+                        <a type="button" id="btn-instructions" class="btn btn-sm btn-info" target="_blank" hidden>Get
+                            Instructions</a>
+
+
                     </div>
 
                 </div>
@@ -169,7 +179,7 @@
 
 <script type="module">
     import {putBackCursorPosition} from "./resources/js/cursor.js";
-    import {Octokit, App} from "https://cdn.skypack.dev/octokit";
+    import {Octokit, App} from "https://esm.sh/octokit";
 
 
     const queryString = window.location.search;
@@ -185,13 +195,21 @@
             gist_id: gistId
         });
         ace.edit("editor").getSession().setValue(Object.entries(gist.data.files).find(entry => entry[1].language == "Java")[1].content);
-        const expectedOutput = Object.entries(gist.data.files).find(entry => entry[1].filename == "answers.txt")[1].content;
-        if (expectedOutput != null && expectedOutput != "") {
-            document.querySelector('#answers').value = expectedOutput;
-            document.querySelector("#expected-output").hidden = false;
+        document.querySelector("span#gist_title").innerHTML = gist.data.description;
+        document.getElementById("btn-instructions").hidden = false;
+        document.getElementById("btn-instructions").setAttribute("href", gist.data.html_url + "#file-comments-md");
+        var expectedOutput = Object.entries(gist.data.files).find(entry => entry[1].filename == "answers.txt");
+        if (expectedOutput !== undefined && expectedOutput.length > 0) {
+            expectedOutput = expectedOutput[1].content;
+            if (expectedOutput != null && expectedOutput != "") {
+                document.querySelector('#answers').value = expectedOutput;
+                document.querySelector("#expected-output").hidden = false;
+            }
         }
+
         putBackCursorPosition();
     }
+
     if (updated == "true" && document.querySelector("#answers").value != "") {
         document.querySelector("#expected-output").hidden = false;
     }
@@ -224,6 +242,7 @@
     }, false);
 
     document.querySelector("#btn-run").addEventListener('click', onSubmit, false);
+
 
     document.querySelector("#save-maven").addEventListener("click", function () {
         const code = ace.edit("editor").getValue();

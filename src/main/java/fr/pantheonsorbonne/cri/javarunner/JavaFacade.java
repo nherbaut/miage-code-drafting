@@ -1,6 +1,8 @@
-package fr.pantheonsorbonne.cri;
+package fr.pantheonsorbonne.cri.javarunner;
 
 import com.google.common.io.MoreFiles;
+import fr.pantheonsorbonne.cri.javarunner.exceptions.ProcessExecutionError;
+import fr.pantheonsorbonne.cri.javarunner.exceptions.ServiceOverloadedException;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.janino.SimpleCompiler;
 import org.codehaus.janino.util.ClassFile;

@@ -1,4 +1,4 @@
-package fr.pantheonsorbonne.cri;
+package fr.pantheonsorbonne.cri.javarunner.exceptions;
 
 public class ServiceOverloadedException extends Exception{
     public ServiceOverloadedException(Throwable cause){

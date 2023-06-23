@@ -1,5 +1,6 @@
-package fr.pantheonsorbonne.cri;
+package fr.pantheonsorbonne.cri.javarunner.servlet;
 
+import fr.pantheonsorbonne.cri.javarunner.JavaFacade;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
@@ -24,7 +25,7 @@ import java.util.stream.Collectors;
 
 @WebServlet("")
 @MultipartConfig
-public class App extends HttpServlet {
+public class RunnerServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request,
@@ -96,14 +97,17 @@ public class App extends HttpServlet {
 
 
         } catch (TimeoutException e) {
+            e.printStackTrace();
             request.setAttribute("success", "false");
             request.setAttribute("result", "Your program took too long to complete (more that the timeout threshold), execution canceled. Watch out for infinite loops\n" + e.getLocalizedMessage());
         } catch (CompileException | InternalCompilerException e) {
+            e.printStackTrace();
             request.setAttribute("success", "false");
             request.setAttribute("result", "Your program failed to compile:\n" + e.getLocalizedMessage());
-        } catch (Exception e1) {
+        } catch (Exception e) {
+            e.printStackTrace();
             request.setAttribute("success", "false");
-            request.setAttribute("result", e1.getLocalizedMessage());
+            request.setAttribute("result", e.getLocalizedMessage());
 
 
         }
