@@ -190,20 +190,24 @@
     const octokit = new Octokit({});
 
 
-    if (gistId != null && (updated == null || updated == false)) {
+    if (gistId != null) {
         const gist = await octokit.request('GET /gists/{gist_id}', {
             gist_id: gistId
         });
-        ace.edit("editor").getSession().setValue(Object.entries(gist.data.files).find(entry => entry[1].language == "Java")[1].content);
-        document.querySelector("span#gist_title").innerHTML = gist.data.description;
         document.getElementById("btn-instructions").hidden = false;
         document.getElementById("btn-instructions").setAttribute("href", gist.data.html_url + "#file-comments-md");
-        var expectedOutput = Object.entries(gist.data.files).find(entry => entry[1].filename == "answers.txt");
-        if (expectedOutput !== undefined && expectedOutput.length > 0) {
-            expectedOutput = expectedOutput[1].content;
-            if (expectedOutput != null && expectedOutput != "") {
-                document.querySelector('#answers').value = expectedOutput;
-                document.querySelector("#expected-output").hidden = false;
+        if ((updated == null || updated == false)) {
+
+            ace.edit("editor").getSession().setValue(Object.entries(gist.data.files).find(entry => entry[1].language == "Java")[1].content);
+            document.querySelector("span#gist_title").innerHTML = gist.data.description;
+
+            var expectedOutput = Object.entries(gist.data.files).find(entry => entry[1].filename == "answers.txt");
+            if (expectedOutput !== undefined && expectedOutput.length > 0) {
+                expectedOutput = expectedOutput[1].content;
+                if (expectedOutput != null && expectedOutput != "") {
+                    document.querySelector('#answers').value = expectedOutput;
+                    document.querySelector("#expected-output").hidden = false;
+                }
             }
         }
 

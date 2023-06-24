@@ -83,7 +83,7 @@ public class JavaFacade implements AutoCloseable {
         pb.directory(tmpDir.toFile());
         String tomcatBase = System.getenv("CATALINA_HOME");
 
-        String isolate = String.format("%s/webapps/javarunner/WEB-INF/classes/isolate.sh", tomcatBase);
+        String isolate = String.format("%s/webapps/ROOT/WEB-INF/classes/isolate.sh", tomcatBase);
         pb.command("/bin/bash", isolate, "" + gid, tmpDir.toAbsolutePath().toString(), classFile.getThisClassName());
         Process pr = pb.start();
         while (pr.isAlive()) {
