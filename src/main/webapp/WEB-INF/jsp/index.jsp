@@ -49,7 +49,7 @@
 
         <div id="main-container" class="container">
             <div class="row">
-                <h1 class="main">MIAGE Code Crafting <span id="gist_title"></span></h1>
+                <a href="${pageContext.request.contextPath}/home?filter=L3"><h1 class="main">MIAGE Code Crafting</a> <span id="gist_title"></span></h1>
             </div>
 
             <div class="row">
