@@ -20,6 +20,13 @@ import java.util.stream.StreamSupport;
 
 @WebServlet("/home")
 public class HomeServlet extends HttpServlet {
+
+    private final String ghClientSecret;
+
+    public HomeServlet() {
+        ghClientSecret = System.getenv("GH_CLIENT_SECRET");
+    }
+
     @Override
     protected void doGet(HttpServletRequest request,
                          HttpServletResponse response) throws ServletException, IOException {
@@ -31,7 +38,7 @@ public class HomeServlet extends HttpServlet {
         if (gistMap == null || gistMapTimeout == null || gistMapTimeout < System.currentTimeMillis()) {
 
 
-            GitHub github = new GitHubBuilder().withOAuthToken(System.getenv("gh_token")).build();
+            GitHub github = new GitHubBuilder().withOAuthToken(ghClientSecret).build();
             PagedIterable<GHGist> gists = github.getUser("nherbaut").listGists();
             Predicate<GHGist> gistFilter;
             if (filter != null) {

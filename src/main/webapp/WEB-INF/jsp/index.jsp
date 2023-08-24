@@ -293,7 +293,18 @@
             document.querySelector("#ghauth").addEventListener("click",
                 function () {
                     window.open("https://github.com/login/oauth/authorize?client_id=${client_id}&scope=gist");
-                    alert("refresh page once github auth is complete");
+
+                    var f = function() {
+                        if (localStorage.getItem("access_token")) {
+                            location.reload();
+                        } else {
+                            setTimeout(f, 1000);
+                        }
+                    };
+                    setTimeout(f,1000);
+
+
+
                 });
 
         }

@@ -1,6 +1,14 @@
 package fr.pantheonsorbonne.cri.javarunner.servlet;
 
-import fr.pantheonsorbonne.cri.javarunner.JavaFacade;
+import com.github.javaparser.ParseProblemException;
+import fr.pantheonsorbonne.cri.javarunner.EditorModel;
+import fr.pantheonsorbonne.cri.javarunner.NoParsableCodeException;
+import fr.pantheonsorbonne.cri.javarunner.Utils;
+import fr.pantheonsorbonne.ufr27.miage.model.PayloadModel;
+import fr.pantheonsorbonne.ufr27.miage.model.Result;
+import fr.pantheonsorbonne.ufr27.miage.model.SourceFile;
+import fr.pantheonsorbonne.ufr27.miage.service.BuilderAndCompiler;
+import fr.pantheonsorbonne.ufr27.miage.service.impl.BuilderAndCompilerNative;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
@@ -8,24 +16,29 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.Part;
-import org.codehaus.commons.compiler.CompileException;
-import org.codehaus.commons.compiler.InternalCompilerException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
-
 
 
 @WebServlet("")
 @MultipartConfig
 public class RunnerServlet extends HttpServlet {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger("RunnerServlet");
+    private final String ghClientId;
+
+    public RunnerServlet() {
+        System.getenv().forEach((k, v) -> LOGGER.info("{}:{}", k, v));
+        ghClientId = System.getenv("GH_CLIENT_ID");
+        LOGGER.info("my client id is {} ", ghClientId);
+    }
 
     @Override
     protected void doGet(HttpServletRequest request,
@@ -44,11 +57,10 @@ public class RunnerServlet extends HttpServlet {
                 code = new String(java.util.Base64.getDecoder().decode(code));
             }
             request.setAttribute("code", code);
-            request.setAttribute("client_id", System.getenv("GH_CLIENT_ID"));
-            if(gistId!=null) {
-                request.getRequestDispatcher("/WEB-INF/jsp/index.jsp?gistId="+gistId).forward(request, response);
-            }
-            else{
+            request.setAttribute("client_id", ghClientId);
+            if (gistId != null) {
+                request.getRequestDispatcher("/WEB-INF/jsp/index.jsp?gistId=" + gistId).forward(request, response);
+            } else {
                 request.getRequestDispatcher("/WEB-INF/jsp/index.jsp").forward(request, response);
             }
         }
@@ -58,11 +70,12 @@ public class RunnerServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request,
                           HttpServletResponse response) throws IOException, ServletException {
         String code = request.getParameter("code");
-        request.setAttribute("client_id", System.getenv("GH_CLIENT_ID"));
-        Map<String, String> payLoad = new HashMap<>();
+        request.setAttribute("client_id", ghClientId);
+
+        EditorModel editorModel = new EditorModel();
         if (code != null) {
 
-            payLoad.put("code", new String(java.util.Base64.getDecoder().decode(code)));
+            editorModel.setCode(new String(java.util.Base64.getDecoder().decode(code)));
         }
         if (request.getContentType() != null && !request.getContentType().isBlank() && request.getContentType().contains("multipart/form-data")) {
             for (Part part : request.getParts()) {
@@ -75,45 +88,75 @@ public class RunnerServlet extends HttpServlet {
                             decodedLine = new String(r.lines().collect(Collectors.joining("\n")));
                         }
                         request.setAttribute(part.getName(), decodedLine);
-                        payLoad.put(part.getName(), decodedLine);
+                        switch (part.getName()) {
+                            case "gistId":
+                                editorModel.setGistId(decodedLine);
+                                break;
+                            case "code":
+                                editorModel.setCode(decodedLine);
+                                break;
+                            case "answers":
+                                editorModel.setAnswsers(decodedLine);
+                                break;
+                            default:
+                                throw new RuntimeException("unsupported part " + part.getName() + " content:" + decodedLine);
+                        }
                     }
                 }
             }
         }
 
-
+        BuilderAndCompiler builderAndCompiler = null;
         try {
-            Map<String, String> processResult;
-            try (JavaFacade facade = new JavaFacade()) {
-                processResult = facade.buildAndRun(payLoad);
+
+            PayloadModel model = new PayloadModel();
+            String className = null;
+            try {
+                className = Utils.inferFileNameFromCode(editorModel.getCode());
+            } catch (NoParsableCodeException | ParseProblemException e) {
+                className = "dummy-" + System.currentTimeMillis() + ".java";
             }
-            if ((!payLoad.containsKey("answers")) || payLoad.get("answers").isBlank() || payLoad.get("answers").trim().equals(processResult.get("out").trim())) {
-                request.setAttribute("success", "true");
-                request.setAttribute("result", processResult.get("out"));
+            model.getSources().add(new SourceFile(className, editorModel.getCode()));
+            builderAndCompiler = new BuilderAndCompilerNative();
+            Result compilationAndExecutionResult = builderAndCompiler.buildAndCompile(model);
+
+            if (compilationAndExecutionResult.getCompilationDiagnostic().size() == 0 && compilationAndExecutionResult.getRuntimeError().size() == 0) {
+
+
+                if ((editorModel.getAnswser() == null) || editorModel.getAnswser().isBlank()) {
+                    request.setAttribute("success", "true");
+                    request.setAttribute("result", compilationAndExecutionResult.getStdout().get(0));
+                } else if (editorModel.getAnswser().trim().equals(compilationAndExecutionResult.getStdout().get(0).trim())) {
+                    request.setAttribute("success", "true");
+                    request.setAttribute("result", "the execution of your code is compatible with the expected results:\n" + compilationAndExecutionResult.getStdout().get(0));
+                } else {
+                    request.setAttribute("success", "false");
+                    request.setAttribute("result", "the execution of your code is NOT compatible with the expected results:\n" + compilationAndExecutionResult.getStdout().get(0));
+                }
+
             } else {
                 request.setAttribute("success", "false");
-                request.setAttribute("result", "Your code output doesn't match the expected output \n" + processResult.get("out"));
+
+                StringBuilder sb = new StringBuilder("there is an issue processing your code:\n");
+                sb.append("Compilation Problems:\n");
+                sb.append("=====================\n");
+                compilationAndExecutionResult.getCompilationDiagnostic().forEach(d -> sb.append(String.format("%s line: %d position_start:%d position_end:%d", d.getMessageEN(), d.getLineNumber(), d.getStartPosition(), d.getEndPosition())));
+                sb.append("\n\nExecution Problems:\n");
+                sb.append("=====================\n");
+                compilationAndExecutionResult.getRuntimeError().forEach(rte -> sb.append(rte.toString()));
+                request.setAttribute("result", "there is an issue processing your code:\n" + sb.toString());
+
             }
 
 
-        } catch (TimeoutException e) {
-            e.printStackTrace();
-            request.setAttribute("success", "false");
-            request.setAttribute("result", "Your program took too long to complete (more that the timeout threshold), execution canceled. Watch out for infinite loops\n" + e.getLocalizedMessage());
-        } catch (CompileException | InternalCompilerException e) {
-            e.printStackTrace();
-            request.setAttribute("success", "false");
-            request.setAttribute("result", "Your program failed to compile:\n" + e.getLocalizedMessage());
-        } catch (Exception e) {
-            e.printStackTrace();
-            request.setAttribute("success", "false");
-            request.setAttribute("result", e.getLocalizedMessage());
-
-
+        } finally {
+            if (builderAndCompiler != null) {
+                builderAndCompiler.reboot();
+            }
         }
         String dispatcher = "/WEB-INF/jsp/index.jsp";
-        if (payLoad.containsKey("gistId")) {
-            dispatcher = dispatcher += "?gistId=" + payLoad.get("gistId");
+        if (editorModel.getGistId() != null) {
+            dispatcher = dispatcher += "?gistId=" + editorModel.getGistId();
         }
         request.getRequestDispatcher(dispatcher).
                 forward(request, response);

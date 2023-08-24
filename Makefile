@@ -6,7 +6,7 @@ build-java:
 build: build-java
 	docker build -f docker/Dockerfile . -t nherbaut/javarunner
 run:
-	docker run --privileged -p 8081:8080 --rm --name javarunner -e GH_CLIENT_ID=$(_GH_CLIENT_ID) -e GH_CLIENT_SECRET=$(_GH_CLIENT_SECRET) nherbaut/javarunner
+	docker run -p 8081:8080 --rm --name javarunner -e GH_CLIENT_ID=$(_GH_CLIENT_ID) -e GH_CLIENT_SECRET=$(_GH_CLIENT_SECRET) nherbaut/javarunner
 	
 stop:
 	docker rm -f $(docker ps -qa)

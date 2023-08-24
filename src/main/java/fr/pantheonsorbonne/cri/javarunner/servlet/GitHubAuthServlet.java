@@ -5,6 +5,8 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -17,6 +19,19 @@ import java.util.stream.Collectors;
 
 @WebServlet("/github/callback")
 public class GitHubAuthServlet extends HttpServlet {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger("GitHubAuthServlet");
+    private final String ghClientId;
+    private final String ghClientSecret;
+
+    public GitHubAuthServlet() {
+
+        System.getenv().forEach((k, v) -> LOGGER.info("{}:{}", k, v));
+        ghClientId = System.getenv("GH_CLIENT_ID");
+        ghClientSecret = System.getenv("GH_CLIENT_SECRET");
+        LOGGER.info("my client id is {}" , ghClientId);
+        LOGGER.info("my client secret is {}" , ghClientSecret);
+    }
 
     class ParameterStringBuilder {
         public static String getParamsString(Map<String, String> params)
@@ -40,7 +55,7 @@ public class GitHubAuthServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request,
                          HttpServletResponse response) throws IOException, ServletException {
-        String client_id = System.getenv("GH_CLIENT_ID");
+        String client_id = ghClientId;
         String code = request.getParameter("code");
 
         URL url = new URL("https://github.com/login/oauth/access_token");
@@ -49,7 +64,7 @@ public class GitHubAuthServlet extends HttpServlet {
         Map<String, String> parameters = new HashMap<>();
         parameters.put("client_id", client_id);
         parameters.put("code", code);
-        parameters.put("client_secret", System.getenv("GH_CLIENT_SECRET"));
+        parameters.put("client_secret", ghClientSecret);
         parameters.put("scope", "gist");
         con.setDoOutput(true);
         DataOutputStream out = new DataOutputStream(con.getOutputStream());
