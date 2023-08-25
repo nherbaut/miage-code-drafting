@@ -29,10 +29,17 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.codehaus.janino</groupId>
-            <artifactId>janino</artifactId>
-            <version>3.1.9</version>
+            <groupId>org.jboss.resteasy</groupId>
+            <artifactId>resteasy-client</artifactId>
+            <version>6.2.5.Final</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.jboss.resteasy</groupId>
+            <artifactId>resteasy-jackson2-provider</artifactId>
+            <version>6.2.5.Final</version>
+        </dependency>
+
 
         <dependency>
             <groupId>jakarta.servlet.jsp.jstl</groupId>
@@ -40,6 +47,11 @@
             <version>2.0.0</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-text</artifactId>
+            <version>1.10.0</version>
+        </dependency>
 
         <dependency>
             <groupId>org.kohsuke</groupId>
@@ -194,4 +206,32 @@
 
         </plugins>
     </build>
+
+
+    <distributionManagement>
+        <repository>
+            <id>miage</id>
+            <name>Miage Releases</name>
+            <url>https://maven.miage.dev/releases</url>
+        </repository>
+
+        <snapshotRepository>
+            <id>miage</id>
+            <name>Miage Snapshots</name>
+            <url>https://maven.miage.dev/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
+    <repositories>
+        <repository>
+            <id>miage.release</id>
+            <name>Miage Releases</name>
+            <url>https://maven.miage.dev/releases</url>
+        </repository>
+        <repository>
+            <id>miage.snapshots</id>
+            <name>Miage Snapshots</name>
+            <url>https://maven.miage.dev/snapshots</url>
+        </repository>
+    </repositories>
+
 </project>

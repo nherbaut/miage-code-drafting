@@ -2,7 +2,7 @@ package fr.pantheonsorbonne.cri.javarunner;
 
 import fr.pantheonsorbonne.cri.javarunner.exceptions.ProcessExecutionError;
 import fr.pantheonsorbonne.cri.javarunner.exceptions.ServiceOverloadedException;
-import org.codehaus.commons.compiler.CompileException;
+
 
 import java.io.IOException;
 import java.util.Map;
@@ -16,9 +16,8 @@ public interface JavaFacade {
      * @throws IOException
      * @throws ProcessExecutionError
      * @throws TimeoutException
-     * @throws CompileException
      * @throws ServiceOverloadedException
      */
-    public Map<String, String> buildAndRun(EditorModel payLoad) throws IOException, ProcessExecutionError, TimeoutException, CompileException, ServiceOverloadedException;
+    public Map<String, String> buildAndRun(EditorModel payLoad) throws IOException, ProcessExecutionError, TimeoutException,  ServiceOverloadedException;
 
 }

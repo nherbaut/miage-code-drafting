@@ -3,12 +3,14 @@ package fr.pantheonsorbonne.cri.javarunner.servlet;
 import com.github.javaparser.ParseProblemException;
 import fr.pantheonsorbonne.cri.javarunner.EditorModel;
 import fr.pantheonsorbonne.cri.javarunner.NoParsableCodeException;
+import fr.pantheonsorbonne.cri.javarunner.ProblemWithCode;
 import fr.pantheonsorbonne.cri.javarunner.Utils;
+import fr.pantheonsorbonne.cri.javarunner.coderunner.BuilderAndCompilerFactory;
+import fr.pantheonsorbonne.ufr27.miage.model.MyDiagnostic;
 import fr.pantheonsorbonne.ufr27.miage.model.PayloadModel;
 import fr.pantheonsorbonne.ufr27.miage.model.Result;
 import fr.pantheonsorbonne.ufr27.miage.model.SourceFile;
 import fr.pantheonsorbonne.ufr27.miage.service.BuilderAndCompiler;
-import fr.pantheonsorbonne.ufr27.miage.service.impl.BuilderAndCompilerNative;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
@@ -16,6 +18,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.Part;
+import org.apache.commons.text.StringEscapeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +27,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 
@@ -69,13 +75,13 @@ public class RunnerServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request,
                           HttpServletResponse response) throws IOException, ServletException {
-        String code = request.getParameter("code");
+        String base64Code = request.getParameter("code");
         request.setAttribute("client_id", ghClientId);
 
         EditorModel editorModel = new EditorModel();
-        if (code != null) {
+        if (base64Code != null) {
 
-            editorModel.setCode(new String(java.util.Base64.getDecoder().decode(code)));
+            editorModel.setCode(new String(java.util.Base64.getDecoder().decode(base64Code)));
         }
         if (request.getContentType() != null && !request.getContentType().isBlank() && request.getContentType().contains("multipart/form-data")) {
             for (Part part : request.getParts()) {
@@ -117,9 +123,10 @@ public class RunnerServlet extends HttpServlet {
                 className = "dummy-" + System.currentTimeMillis() + ".java";
             }
             model.getSources().add(new SourceFile(className, editorModel.getCode()));
-            builderAndCompiler = new BuilderAndCompilerNative();
-            Result compilationAndExecutionResult = builderAndCompiler.buildAndCompile(model);
-
+            builderAndCompiler = BuilderAndCompilerFactory.getDefault();
+            Result compilationAndExecutionResult = builderAndCompiler.buildAndCompile(model, 10, TimeUnit.SECONDS);
+            Collection<ProblemWithCode> compilationErrors = new ArrayList<>();
+            Collection<ProblemWithCode> runtimeErrors = new ArrayList<>();
             if (compilationAndExecutionResult.getCompilationDiagnostic().size() == 0 && compilationAndExecutionResult.getRuntimeError().size() == 0) {
 
 
@@ -140,13 +147,28 @@ public class RunnerServlet extends HttpServlet {
                 StringBuilder sb = new StringBuilder("there is an issue processing your code:\n");
                 sb.append("Compilation Problems:\n");
                 sb.append("=====================\n");
-                compilationAndExecutionResult.getCompilationDiagnostic().forEach(d -> sb.append(String.format("%s line: %d position_start:%d position_end:%d", d.getMessageEN(), d.getLineNumber(), d.getStartPosition(), d.getEndPosition())));
+                compilationAndExecutionResult.getCompilationDiagnostic().forEach(d -> sb.append(getRangeFromDiagnostic(d,editorModel.getCode(),"compilation error")));
                 sb.append("\n\nExecution Problems:\n");
                 sb.append("=====================\n");
                 compilationAndExecutionResult.getRuntimeError().forEach(rte -> sb.append(rte.toString()));
-                request.setAttribute("result", "there is an issue processing your code:\n" + sb.toString());
+                request.setAttribute("result", sb.toString());
+
+
+                compilationErrors.addAll(compilationAndExecutionResult.getCompilationDiagnostic().stream()
+                        .map(d -> getRangeFromDiagnostic(d, editorModel.getCode(), "compilation-error")
+                        )
+                        .collect(Collectors.toList()));
+
+                runtimeErrors.addAll(compilationAndExecutionResult.getRuntimeError().stream()
+                        .flatMap(r ->r.getStackTraceElements()
+                                        .stream()
+                                        .map(ste -> new ProblemWithCode(r.getMessage(), "execution-error", ste.lineNumber()-1, 0, ste.lineNumber()-1, 99))
+                        ).collect(Collectors.toList()));
+
 
             }
+            request.setAttribute("compilationErrors", compilationErrors);
+            request.setAttribute("runtimeErrors", runtimeErrors);
 
 
         } finally {
@@ -162,6 +184,26 @@ public class RunnerServlet extends HttpServlet {
                 forward(request, response);
 
 
+    }
+
+
+
+    protected static ProblemWithCode getRangeFromDiagnostic(MyDiagnostic d, String code, String kind) {
+        long startColumn = code.substring(0, d.getStartPosition().intValue()).lines().reduce((l1, l2) -> l2).get().length();
+        long endColumn = code.substring(0, d.getEndPosition().intValue()).lines().reduce((l1, l2) -> l2).get().length() + 1;
+        long startRow = code.substring(0, d.getStartPosition().intValue()).lines().count() -1;
+        long endRow = code.substring(0, d.getEndPosition().intValue()).lines().count() -1;
+
+
+        var range = new ProblemWithCode(
+                StringEscapeUtils.escapeEcmaScript(d.getMessageFR()),
+                kind,
+                startRow,
+                startColumn,
+                endRow,
+                endColumn
+        );
+        return range;
     }
 
 }

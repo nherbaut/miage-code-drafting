@@ -36,3 +36,48 @@ textarea {
     font-family:monospace;
 }
 
+.myCustomMouseOverHighlight-compilation-error {
+    border-bottom: 1px dashed red;
+    position: absolute;
+    cursor: pointer !important;
+    pointer-events: auto;
+    background: repeating-linear-gradient(
+            45deg,
+            red,
+            yellow 10px,
+            red 10px,
+            yellow 20px
+    );
+    opacity: 0.3;
+}
+
+.myCustomMouseOverHighlight-execution-error {
+    border-bottom: 2px dashed blue;
+    position: absolute;
+    cursor: pointer !important;
+    pointer-events: auto;
+    background: repeating-linear-gradient(
+            45deg,
+            #606dbc,
+            #606dbc 10px,
+            #465298 10px,
+            #465298 20px
+    );
+    opacity: 0.3;
+}
+
+
+#codeTooltip{
+    display: none;
+    background: #C8C8C8;
+    color : #343a40;
+    margin-left: 28px;
+    padding: 10px;
+    position: absolute;
+    z-index: 1000;
+    width:400px;
+    height:200px;
+}
+#codeTooltip.visible{
+    display: inherit;
+}

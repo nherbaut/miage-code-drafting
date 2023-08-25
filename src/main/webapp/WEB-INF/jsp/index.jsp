@@ -50,7 +50,8 @@
         <div id="main-container" class="container">
             <div class="row">
                 <span id="logo"></span>
-                <a href="${pageContext.request.contextPath}/home?filter=L3"><h1 class="main">MIAGE Code Crafting</a> <span id="gist_title"></span></h1>
+                <a href="${pageContext.request.contextPath}/home?filter=L3"><h1 class="main">MIAGE Code Crafting</a>
+                <span id="gist_title"></span></h1>
             </div>
 
             <div class="row">
@@ -129,8 +130,9 @@
 
                     </div>
                 </div>
-                <textarea name="code" id="code" hidden></textarea>
-
+                <div>
+                    <textarea name="code" id="code" hidden></textarea>
+                </div>
 
             </div>
 
@@ -146,19 +148,18 @@
     </form>
 
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.9.6/ace.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.9.6/mode-java.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.9.6/ext-language_tools.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.9.6/theme-textmate.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.24.1/ace.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.24.1/mode-java.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.24.1/ext-language_tools.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.24.1/theme-textmate.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
             integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
             crossorigin="anonymous"></script>
 
-
+    <span id="codeTooltip">issue here</span>
 </body>
 
 
-</script>
 <script type="module">
     import {putBackCursorPosition} from "./resources/js/cursor.js";
 
@@ -261,6 +262,12 @@
 
     window.addEventListener("load", function (e) {
 
+        var tooltip = document.getElementById('codeTooltip');
+        document.addEventListener('mousemove', function fn(e) {
+            tooltip.style.left = e.pageX + 'px';
+            tooltip.style.top = e.pageY + 'px';
+        }, false);
+
         // update gist callback
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('hideanswers') == "true") {
@@ -295,15 +302,14 @@
                 function () {
                     window.open("https://github.com/login/oauth/authorize?client_id=${client_id}&scope=gist");
 
-                    var f = function() {
+                    var f = function () {
                         if (localStorage.getItem("access_token")) {
                             location.reload();
                         } else {
                             setTimeout(f, 1000);
                         }
                     };
-                    setTimeout(f,1000);
-
+                    setTimeout(f, 1000);
 
 
                 });
@@ -313,7 +319,84 @@
 
         ace.edit("editor").on('change', e => {
             localStorage.setItem("code", ace.edit("editor").getValue());
+            for(let m of Object.entries(ace.edit("editor").getSession().getMarkers(true))){
+                ace.edit("editor").getSession().removeMarker(m[0]);
+            }
         });
+
+
+        var Range = ace.require("ace/range").Range;
+        var markerMessageMap = Map;
+        var firstErrorLine=-1;
+        <c:choose>
+        <c:when test="${compilationErrors.size()>0}">
+        <c:forEach var="compilationError" items="${compilationErrors}">
+
+        {
+            var range = new Range(${compilationError.startRow()}, ${compilationError.startColumn()}, ${compilationError.endRow() }, ${compilationError.endColumn()});
+            firstErrorLine=range.start.row;
+            var marker = ace.edit("editor").getSession().addMarker(range, "myCustomMouseOverHighlight-${compilationError.kind()}", "line", true);
+            markerMessageMap[marker] = '${compilationError.message()}';
+        }
+
+        </c:forEach>
+        </c:when>
+        </c:choose>
+
+        <c:choose>
+        <c:when test="${runtimeErrors.size()>0}">
+        <c:forEach var="runtimeError" items="${runtimeErrors}">
+
+        {
+            var range = new Range(${runtimeError.startRow()}, 0, ${runtimeError.endRow() }, 100);
+            firstErrorLine=range.start.row;
+            var marker = ace.edit("editor").getSession().addMarker(range, "myCustomMouseOverHighlight-${runtimeError.kind()}", "fullLine", true);
+            markerMessageMap[marker] = '${runtimeError.message()}';
+        }
+
+        </c:forEach>
+        </c:when>
+        </c:choose>
+
+        if(firstErrorLine!=-1){
+            var editor = ace.edit('editor');
+            editor.resize(true);
+
+            editor.scrollToLine(firstErrorLine, true, true, function () {});
+
+            editor.gotoLine(firstErrorLine);
+
+        }
+
+
+        ace.edit("editor").on("mousemove", function (e) {
+            var atLeastOneVisible=false;
+            tooltip.innerHTML="";
+            for (let m of Object.entries(ace.edit("editor").getSession().getMarkers(true))) {
+                if (m[1].range) {
+                    let id = m[0];
+                    var curRow = e.getDocumentPosition().row;
+                    var curCol = e.getDocumentPosition().column;
+                    var mSRow = m[1].range.start.row;
+                    var mERow = m[1].range.end.row;
+                    var mSCol = m[1].range.start.column;
+                    var mECol = m[1].range.end.column;
+                    if (curRow >= mSRow && curRow <= mERow && curCol >= mSCol && curCol <= mECol) {
+                        tooltip.innerHTML += markerMessageMap[id];
+                        atLeastOneVisible=true;
+                    }
+                }
+            }
+            if(!atLeastOneVisible){
+                tooltip.classList.remove("visible");
+            }
+            else{
+                tooltip.classList.add("visible");
+            }
+
+        });
+
+
         <c:choose>
         <c:when test="${not empty gistId}">
 
@@ -341,6 +424,8 @@
         document.querySelector("#gistsave").disabled = false;
         </c:otherwise>
         </c:choose>
+
+
     });
 
     function utf8_to_b64(str) {
