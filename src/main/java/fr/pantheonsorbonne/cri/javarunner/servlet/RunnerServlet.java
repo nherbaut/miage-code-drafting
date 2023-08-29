@@ -30,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 
@@ -49,8 +50,9 @@ public class RunnerServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request,
                          HttpServletResponse response) throws ServletException, IOException {
-        String run = request.getParameter("run");
+         String run = request.getParameter("run");
         String gistId = request.getParameter("gistId");
+
         if (gistId != null) {
             request.setAttribute("gistId", gistId);
         }
@@ -77,6 +79,7 @@ public class RunnerServlet extends HttpServlet {
                           HttpServletResponse response) throws IOException, ServletException {
         String base64Code = request.getParameter("code");
         request.setAttribute("client_id", ghClientId);
+        request.setAttribute("webSocketURL", System.getenv("WEBSOCKET_URL"));
 
         EditorModel editorModel = new EditorModel();
         if (base64Code != null) {
@@ -147,7 +150,7 @@ public class RunnerServlet extends HttpServlet {
                 StringBuilder sb = new StringBuilder("there is an issue processing your code:\n");
                 sb.append("Compilation Problems:\n");
                 sb.append("=====================\n");
-                compilationAndExecutionResult.getCompilationDiagnostic().forEach(d -> sb.append(getRangeFromDiagnostic(d,editorModel.getCode(),"compilation error")));
+                compilationAndExecutionResult.getCompilationDiagnostic().forEach(d -> sb.append(getRangeFromDiagnostic(d, editorModel.getCode(), "compilation error")));
                 sb.append("\n\nExecution Problems:\n");
                 sb.append("=====================\n");
                 compilationAndExecutionResult.getRuntimeError().forEach(rte -> sb.append(rte.toString()));
@@ -160,9 +163,9 @@ public class RunnerServlet extends HttpServlet {
                         .collect(Collectors.toList()));
 
                 runtimeErrors.addAll(compilationAndExecutionResult.getRuntimeError().stream()
-                        .flatMap(r ->r.getStackTraceElements()
-                                        .stream()
-                                        .map(ste -> new ProblemWithCode(r.getMessage(), "execution-error", ste.lineNumber()-1, 0, ste.lineNumber()-1, 99))
+                        .flatMap(r -> r.getStackTraceElements()
+                                .stream()
+                                .map(ste -> new ProblemWithCode(r.getMessage(), "execution-error", ste.lineNumber() - 1, 0, ste.lineNumber() - 1, 99))
                         ).collect(Collectors.toList()));
 
 
@@ -187,12 +190,14 @@ public class RunnerServlet extends HttpServlet {
     }
 
 
-
     protected static ProblemWithCode getRangeFromDiagnostic(MyDiagnostic d, String code, String kind) {
-        long startColumn = code.substring(0, d.getStartPosition().intValue()).lines().reduce((l1, l2) -> l2).get().length();
-        long endColumn = code.substring(0, d.getEndPosition().intValue()).lines().reduce((l1, l2) -> l2).get().length() + 1;
-        long startRow = code.substring(0, d.getStartPosition().intValue()).lines().count() -1;
-        long endRow = code.substring(0, d.getEndPosition().intValue()).lines().count() -1;
+        Supplier<String> emptyStringSupplier = () -> "";
+        long startColumn = code.substring(0, d.getStartPosition().intValue()).lines().reduce((l1, l2) -> l2).orElseGet(emptyStringSupplier).length();
+        long endColumn = code.substring(0, d.getEndPosition().intValue()).lines().reduce((l1, l2) -> l2).orElseGet(emptyStringSupplier).length() + 1;
+        long startRow = code.substring(0, d.getStartPosition().intValue()).lines().count() - 1;
+        long endRow = code.substring(0, d.getEndPosition().intValue()).lines().count() - 1;
+        startRow=startRow==-1?0:startRow;
+        endRow=endRow==-1?0:endRow;
 
 
         var range = new ProblemWithCode(
