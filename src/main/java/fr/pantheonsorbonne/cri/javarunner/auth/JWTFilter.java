@@ -58,7 +58,7 @@ public class JWTFilter implements Filter {
             jWTtoken = bearer;
         } else if (request.getParameterMap().containsKey("token")) {
             jWTtoken = request.getParameterMap().get("token")[0].toString();
-        } else {
+        } else if(Objects.nonNull(request.getCookies()) && request.getCookies().length>0){
             jWTtoken = Arrays.stream(request.getCookies()).filter(c -> c.getName().equals("auth-token")).map(c -> c.getValue()).findAny().orElse(null);
         }
 

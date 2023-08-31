@@ -18,6 +18,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.Part;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -128,30 +129,46 @@ public class RunnerServlet extends HttpServlet {
             Result compilationAndExecutionResult = builderAndCompiler.buildAndCompile(model, 10, TimeUnit.SECONDS);
             Collection<ProblemWithCode> compilationErrors = new ArrayList<>();
             Collection<ProblemWithCode> runtimeErrors = new ArrayList<>();
+            request.setAttribute("result", compilationAndExecutionResult.getStdout());
             if (compilationAndExecutionResult.getCompilationDiagnostic().size() == 0 && compilationAndExecutionResult.getRuntimeError().size() == 0) {
 
 
                 if ((editorModel.getAnswser() == null) || editorModel.getAnswser().isBlank()) {
                     request.setAttribute("success", "true");
-                    request.setAttribute("result", compilationAndExecutionResult.getStdout().get(0));
-                } else if (editorModel.getAnswser().trim().equals(compilationAndExecutionResult.getStdout().get(0).trim())) {
+
+                } else if (editorModel.getAnswser().trim().equals(compilationAndExecutionResult.getStdout().trim())) {
                     request.setAttribute("success", "true");
-                    request.setAttribute("result", "the execution of your code is compatible with the expected results:\n" + compilationAndExecutionResult.getStdout().get(0));
+                    request.setAttribute("result", "the execution of your code is compatible with the expected results:\n" + compilationAndExecutionResult.getStdout());
                 } else {
                     request.setAttribute("success", "false");
-                    request.setAttribute("result", "the execution of your code is NOT compatible with the expected results:\n" + compilationAndExecutionResult.getStdout().get(0));
+                    request.setAttribute("result", "the execution of your code is NOT compatible with the expected results:\n" + compilationAndExecutionResult.getStdout());
                 }
 
             } else {
                 request.setAttribute("success", "false");
 
                 StringBuilder sb = new StringBuilder("there is an issue processing your code:\n");
-                sb.append("Compilation Problems:\n");
-                sb.append("=====================\n");
-                compilationAndExecutionResult.getCompilationDiagnostic().forEach(d -> sb.append(getRangeFromDiagnostic(d, editorModel.getCode(), "compilation error")));
-                sb.append("\n\nExecution Problems:\n");
-                sb.append("=====================\n");
-                compilationAndExecutionResult.getRuntimeError().forEach(rte -> sb.append(rte.toString()));
+                if (compilationAndExecutionResult.getCompilationDiagnostic().size() > 0) {
+                    sb.append("Compilation Problems:\n");
+                    sb.append("=====================\n");
+                    compilationAndExecutionResult.getCompilationDiagnostic().forEach(d -> sb.append(getRangeFromDiagnostic(d, editorModel.getCode(), "compilation error")));
+                }
+                if (compilationAndExecutionResult.getRuntimeError().size() > 0) {
+                    sb.append("\n\nExecution Problems:\n");
+                    sb.append("=====================\n");
+                    compilationAndExecutionResult.getRuntimeError().forEach(rte -> sb.append(rte.toString()));
+
+                }
+
+                sb.append("\n\nStandard Output\n");
+                sb.append("===============\n");
+
+                if (compilationAndExecutionResult.getStdout().length() > 0) {
+                    sb.append(compilationAndExecutionResult.getStdout());
+                }
+                else{
+                    sb.append("<<no standard output>>");
+                }
                 request.setAttribute("result", sb.toString());
 
 
@@ -194,8 +211,8 @@ public class RunnerServlet extends HttpServlet {
         long endColumn = code.substring(0, d.getEndPosition().intValue()).lines().reduce((l1, l2) -> l2).orElseGet(emptyStringSupplier).length() + 1;
         long startRow = code.substring(0, d.getStartPosition().intValue()).lines().count() - 1;
         long endRow = code.substring(0, d.getEndPosition().intValue()).lines().count() - 1;
-        startRow=startRow==-1?0:startRow;
-        endRow=endRow==-1?0:endRow;
+        startRow = startRow == -1 ? 0 : startRow;
+        endRow = endRow == -1 ? 0 : endRow;
 
 
         var range = new ProblemWithCode(
