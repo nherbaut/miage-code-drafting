@@ -32,20 +32,20 @@
           media="(prefers-color-scheme: light)">
 
 
-    <link href="./resources/css/style.css" rel="stylesheet">
+    <link href="${pageContext.request.contextPath}/resources/css/style.css" rel="stylesheet">
 
 
 </head>
 <body>
 <c:choose>
 <c:when test="${empty gistId}">
-<form id="theform" method="POST" action="./" enctype="multipart/form-data">
+    <form id="theform" method="POST" enctype="multipart/form-data">
     </c:when>
     <c:otherwise>
-    <form id="theform" method="POST" action="./?gistId=${gistId}&updated=true" enctype="multipart/form-data">
+    <form id="theform" method="POST" gistId="${gistId}" updated="true" enctype="multipart/form-data">
         <input name="gistId" value="${gistId}" hidden>
-        </c:otherwise>
-        </c:choose>
+    </c:otherwise>
+</c:choose>
 
         <div id="main-container" class="container">
             <div class="row">
@@ -161,7 +161,7 @@
 
 
 <script type="module">
-    import {putBackCursorPosition} from "./resources/js/cursor.js";
+    import {putBackCursorPosition} from "${pageContext.request.contextPath}/resources/js/cursor.js";
 
     ace.require("ace/ext/language_tools");
     export const editor = ace.edit("editor");
@@ -180,7 +180,7 @@
 
 
 <script type="module">
-    import {putBackCursorPosition} from "./resources/js/cursor.js";
+    import {putBackCursorPosition} from "${pageContext.request.contextPath}/resources/js/cursor.js";
     import {Octokit, App} from "https://esm.sh/octokit";
 
 
@@ -190,6 +190,8 @@
     const updated = urlParams.get('updated')
 
     const octokit = new Octokit({});
+
+
 
 
     if (gistId != null) {
@@ -225,10 +227,13 @@
 </script>
 
 <script type="module">
-    import {updateGistContent, createNewGist} from "./resources/js/gist.js";
+    import {updateGistContent, createNewGist} from "${pageContext.request.contextPath}/resources/js/gist.js";
 
 
     function onSubmit() {
+
+        let form = document.getElementById("theform");
+
         var code = ace.edit("editor").getValue();
         document.querySelector("#code").value = utf8_to_b64(code);
         if (document.querySelector('#answers')) {
@@ -237,6 +242,19 @@
         const position = ace.edit("editor").getCursorPosition();
         localStorage.setItem("position-row", position.row);
         localStorage.setItem("position-column", position.column);
+
+
+
+        const params = new Proxy(new URLSearchParams(window.location.search), {
+            get: (searchParams, prop) => searchParams.get(prop),
+        });
+        var url = new URL(window.location);
+        if(params.token!=undefined){
+            url.searchParams.set("token",params.token);
+        }
+        url.searchParams.set("updated",true);
+        form.setAttribute("action",url);
+
         document.querySelector("form").submit();
     }
 

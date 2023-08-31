@@ -34,8 +34,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 
-@WebServlet("")
-@MultipartConfig
 public class RunnerServlet extends HttpServlet {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("RunnerServlet");
@@ -50,7 +48,7 @@ public class RunnerServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request,
                          HttpServletResponse response) throws ServletException, IOException {
-         String run = request.getParameter("run");
+        String run = request.getParameter("run");
         String gistId = request.getParameter("gistId");
 
         if (gistId != null) {

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee
+                      https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd"
+         version="6.0"
+         metadata-complete="true">
+
+    <description>
+        Miage Code Crafting
+    </description>
+    <display-name>Miage Code Crafting</display-name>
+
+    <request-character-encoding>UTF-8</request-character-encoding>
+
+    <filter>
+        <filter-name>RemoteIpFilter</filter-name>
+        <filter-class>org.apache.catalina.filters.RemoteIpFilter</filter-class>
+    </filter>
+
+    <filter>
+        <filter-name>JWTFilter</filter-name>
+        <filter-class>fr.pantheonsorbonne.cri.javarunner.auth.JWTFilter</filter-class>
+    </filter>
+
+    <filter-mapping>
+        <filter-name>RemoteIpFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+        <dispatcher>REQUEST</dispatcher>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>JWTFilter</filter-name>
+        <url-pattern>/</url-pattern>
+        <dispatcher>REQUEST</dispatcher>
+    </filter-mapping>
+
+    <servlet>
+        <servlet-name>RunnerServlet</servlet-name>
+        <servlet-class>fr.pantheonsorbonne.cri.javarunner.servlet.RunnerServlet</servlet-class>
+        <multipart-config>
+            <location>/tmp</location>
+            <max-file-size>100000</max-file-size>
+            <max-request-size>100000</max-request-size>
+            <file-size-threshold>50000</file-size-threshold>
+        </multipart-config>
+    </servlet>
+    <servlet>
+        <servlet-name>HomeServlet</servlet-name>
+        <servlet-class>fr.pantheonsorbonne.cri.javarunner.servlet.HomeServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>GitHubAuthServlet</servlet-name>
+        <servlet-class>fr.pantheonsorbonne.cri.javarunner.servlet.GitHubAuthServlet</servlet-class>
+    </servlet>
+
+    <servlet>
+        <servlet-name>default</servlet-name>
+        <servlet-class>org.apache.catalina.servlets.DefaultServlet</servlet-class>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>default</servlet-name>
+        <url-pattern>*.css</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>default</servlet-name>
+        <url-pattern>*.png</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>default</servlet-name>
+        <url-pattern>*.js</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>RunnerServlet</servlet-name>
+        <url-pattern>/</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>HomeServlet</servlet-name>
+        <url-pattern>/home</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>GitHubAuthServlet</servlet-name>
+        <url-pattern> /github/callback</url-pattern>
+    </servlet-mapping>
+
+
+
+
+</web-app>

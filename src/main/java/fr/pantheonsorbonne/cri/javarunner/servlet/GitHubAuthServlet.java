@@ -17,7 +17,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@WebServlet("/github/callback")
 public class GitHubAuthServlet extends HttpServlet {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("GitHubAuthServlet");

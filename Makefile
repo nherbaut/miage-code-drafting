@@ -12,4 +12,10 @@ stop:
 	docker rm -f $(docker ps -qa)
 push:
 	docker push nherbaut/javarunner
+
+k-refresh:
+	kubectl delete pods -l app=javarunner && sleep 5
+k-logs:
+	kubectl logs -l app=javarunner -f 
+k: build push k-refresh k-logs
             

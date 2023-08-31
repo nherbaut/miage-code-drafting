@@ -18,7 +18,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-@WebServlet("/home")
 public class HomeServlet extends HttpServlet {
 
     private final String ghClientSecret;
