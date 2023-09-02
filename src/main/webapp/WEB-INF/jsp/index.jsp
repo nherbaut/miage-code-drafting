@@ -39,13 +39,13 @@
 <body>
 <c:choose>
 <c:when test="${empty gistId}">
-    <form id="theform" method="POST" enctype="multipart/form-data">
+<form id="theform" method="POST" enctype="multipart/form-data">
     </c:when>
     <c:otherwise>
     <form id="theform" method="POST" gistId="${gistId}" updated="true" enctype="multipart/form-data">
         <input name="gistId" value="${gistId}" hidden>
-    </c:otherwise>
-</c:choose>
+        </c:otherwise>
+        </c:choose>
 
         <div id="main-container" class="container">
             <div class="row">
@@ -192,8 +192,6 @@
     const octokit = new Octokit({});
 
 
-
-
     if (gistId != null) {
         const gist = await octokit.request('GET /gists/{gist_id}', {
             gist_id: gistId
@@ -229,6 +227,49 @@
 <script type="module">
     import {updateGistContent, createNewGist} from "${pageContext.request.contextPath}/resources/js/gist.js";
 
+    var event_sink_ws = "${eventSinkWsAddress}";
+    var jwtToken = "${authToken}";
+    var eventSinkSocket = undefined;
+    if (jwtToken) {
+        eventSinkSocket = new WebSocket(event_sink_ws, ["access_token", jwtToken]);
+        eventSinkSocket.onopen = function () {
+            setInterval(() => eventSinkSocket.send("keepalive"), 50000);
+            let payload = {"loadedCode": ace.edit("editor").getValue()};
+            <c:choose>
+            <c:when test="${not empty success}">
+            payload.wasRun = true;
+            payload.runRunResults = {
+                "success":${success}
+            };
+
+            payload.runRunResults.compilationErrors = [];
+
+            <c:forEach var="compilationError" items="${compilationErrors}">
+            payload.runRunResults.compilationErrors.push({
+                "message" : "${compilationError.message()}",
+                "kind" : "${compilationError.kind()}"
+            });
+            </c:forEach>
+            payload.runRunResults.runtimeErrors = [];
+
+            <c:forEach var="runtimeError" items="${runtimeErrors}">
+            payload.runRunResults.runtimeErrors.push({
+                "message" : "${runtimeError.message()}",
+                "kind" : "${runtimeError.kind()}"
+            });
+
+            </c:forEach>
+
+
+            payload.runRunResults.stdout = "${stdout}";
+            </c:when>
+
+
+            </c:choose>
+
+            logEvent("java-runner-loaded", payload);
+        }
+    }
 
     function onSubmit() {
 
@@ -244,17 +285,16 @@
         localStorage.setItem("position-column", position.column);
 
 
-
         const params = new Proxy(new URLSearchParams(window.location.search), {
             get: (searchParams, prop) => searchParams.get(prop),
         });
         var url = new URL(window.location);
-        if(params.token!=undefined){
-            url.searchParams.set("token",params.token);
+        if (params.token != undefined) {
+            url.searchParams.set("token", params.token);
         }
-        url.searchParams.set("updated",true);
-        form.setAttribute("action",url);
-
+        url.searchParams.set("updated", true);
+        form.setAttribute("action", url);
+        logEvent("submit-code", {"code": code})
         document.querySelector("form").submit();
     }
 
@@ -277,6 +317,37 @@
             window.location.assign(file);
         });
     })
+
+    var eventMap = new Map();
+
+    function logEvent(eventType, payload, grace_delay) {
+        if (grace_delay == undefined) {
+            return logEvent(eventType, payload, 0);
+        } else {
+            if (eventSinkSocket && eventSinkSocket.readyState == WebSocket.OPEN) {
+                let event = JSON.stringify({
+                    "application": "miage-code-crafting",
+                    "type": eventType,
+                    "payload": payload
+                });
+                let sendEvent = () => {
+                    eventSinkSocket.send(event);
+                };
+                if (grace_delay > 0) {
+                    if (eventMap.has(eventType)) {
+                        window.clearTimeout(eventMap.get(eventType));
+
+                    }
+                    eventMap.set(eventType, setTimeout(sendEvent, grace_delay));
+                } else {
+                    sendEvent();
+                }
+
+            } else {
+                console.log("event-sink connection lost");
+            }
+        }
+    }
 
     window.addEventListener("load", function (e) {
 
@@ -337,22 +408,27 @@
 
         ace.edit("editor").on('change', e => {
             localStorage.setItem("code", ace.edit("editor").getValue());
-            for(let m of Object.entries(ace.edit("editor").getSession().getMarkers(true))){
+            for (let m of Object.entries(ace.edit("editor").getSession().getMarkers(true))) {
                 ace.edit("editor").getSession().removeMarker(m[0]);
             }
+            logEvent("code-changed", {
+                "newCode": {
+                    "code:": ace.edit("editor").getValue()
+                }
+            }, 500);
         });
 
 
         var Range = ace.require("ace/range").Range;
         var markerMessageMap = Map;
-        var firstErrorLine=-1;
+        var firstErrorLine = -1;
         <c:choose>
         <c:when test="${compilationErrors.size()>0}">
         <c:forEach var="compilationError" items="${compilationErrors}">
 
         {
             var range = new Range(${compilationError.startRow()}, ${compilationError.startColumn()}, ${compilationError.endRow() }, ${compilationError.endColumn()});
-            firstErrorLine=range.start.row;
+            firstErrorLine = range.start.row;
             var marker = ace.edit("editor").getSession().addMarker(range, "myCustomMouseOverHighlight-${compilationError.kind()}", "line", true);
             markerMessageMap[marker] = '${compilationError.message()}';
         }
@@ -367,7 +443,7 @@
 
         {
             var range = new Range(${runtimeError.startRow()}, 0, ${runtimeError.endRow() }, 100);
-            firstErrorLine=range.start.row;
+            firstErrorLine = range.start.row;
             var marker = ace.edit("editor").getSession().addMarker(range, "myCustomMouseOverHighlight-${runtimeError.kind()}", "fullLine", true);
             markerMessageMap[marker] = '${runtimeError.message()}';
         }
@@ -376,11 +452,12 @@
         </c:when>
         </c:choose>
 
-        if(firstErrorLine!=-1){
+        if (firstErrorLine != -1) {
             var editor = ace.edit('editor');
             editor.resize(true);
 
-            editor.scrollToLine(firstErrorLine, true, true, function () {});
+            editor.scrollToLine(firstErrorLine, true, true, function () {
+            });
 
             editor.gotoLine(firstErrorLine);
 
@@ -388,8 +465,8 @@
 
 
         ace.edit("editor").on("mousemove", function (e) {
-            var atLeastOneVisible=false;
-            tooltip.innerHTML="";
+            var atLeastOneVisible = false;
+            tooltip.innerHTML = "";
             for (let m of Object.entries(ace.edit("editor").getSession().getMarkers(true))) {
                 if (m[1].range) {
                     let id = m[0];
@@ -401,14 +478,13 @@
                     var mECol = m[1].range.end.column;
                     if (curRow >= mSRow && curRow <= mERow && curCol >= mSCol && curCol <= mECol) {
                         tooltip.innerHTML += markerMessageMap[id];
-                        atLeastOneVisible=true;
+                        atLeastOneVisible = true;
                     }
                 }
             }
-            if(!atLeastOneVisible){
+            if (!atLeastOneVisible) {
                 tooltip.classList.remove("visible");
-            }
-            else{
+            } else {
                 tooltip.classList.add("visible");
             }
 

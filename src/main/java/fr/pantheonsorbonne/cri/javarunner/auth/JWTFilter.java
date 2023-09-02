@@ -58,7 +58,7 @@ public class JWTFilter implements Filter {
             jWTtoken = bearer;
         } else if (request.getParameterMap().containsKey("token")) {
             jWTtoken = request.getParameterMap().get("token")[0].toString();
-        } else if(Objects.nonNull(request.getCookies()) && request.getCookies().length>0){
+        } else if (Objects.nonNull(request.getCookies()) && request.getCookies().length > 0) {
             jWTtoken = Arrays.stream(request.getCookies()).filter(c -> c.getName().equals("auth-token")).map(c -> c.getValue()).findAny().orElse(null);
         }
 
@@ -71,7 +71,12 @@ public class JWTFilter implements Filter {
             CheckClaimResource checkClaimResource = target.proxy(CheckClaimResource.class);
             Response resp = checkClaimResource.checkRecaptcha("Bearer " + jWTtoken);
             if (resp.getStatus() == 200) {
-                response.addCookie(new Cookie("auth-token", jWTtoken));
+                var cookie = new Cookie("auth-token", jWTtoken);
+                cookie.setSecure(true);
+                cookie.setMaxAge(Integer.MAX_VALUE);
+
+                response.addCookie(cookie);
+                request.getSession(true).setAttribute("authToken", jWTtoken);
                 chain.doFilter(request, response);
                 return;
             }

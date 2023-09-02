@@ -6,19 +6,13 @@ import fr.pantheonsorbonne.cri.javarunner.NoParsableCodeException;
 import fr.pantheonsorbonne.cri.javarunner.ProblemWithCode;
 import fr.pantheonsorbonne.cri.javarunner.Utils;
 import fr.pantheonsorbonne.cri.javarunner.coderunner.BuilderAndCompilerFactory;
-import fr.pantheonsorbonne.ufr27.miage.model.MyDiagnostic;
-import fr.pantheonsorbonne.ufr27.miage.model.PayloadModel;
-import fr.pantheonsorbonne.ufr27.miage.model.Result;
-import fr.pantheonsorbonne.ufr27.miage.model.SourceFile;
+import fr.pantheonsorbonne.ufr27.miage.model.*;
 import fr.pantheonsorbonne.ufr27.miage.service.BuilderAndCompiler;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.MultipartConfig;
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.Part;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,10 +23,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 public class RunnerServlet extends HttpServlet {
@@ -49,8 +45,11 @@ public class RunnerServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request,
                          HttpServletResponse response) throws ServletException, IOException {
+
+
         String run = request.getParameter("run");
         String gistId = request.getParameter("gistId");
+        request.setAttribute("eventSinkWsAddress", System.getenv("EVENT_SINK_SERVER_WS"));
 
         if (gistId != null) {
             request.setAttribute("gistId", gistId);
@@ -78,7 +77,7 @@ public class RunnerServlet extends HttpServlet {
                           HttpServletResponse response) throws IOException, ServletException {
         String base64Code = request.getParameter("code");
         request.setAttribute("client_id", ghClientId);
-        request.setAttribute("webSocketURL", System.getenv("WEBSOCKET_URL"));
+        request.setAttribute("eventSinkWsAddress", System.getenv("EVENT_SINK_SERVER_WS"));
 
         EditorModel editorModel = new EditorModel();
         if (base64Code != null) {
@@ -129,12 +128,13 @@ public class RunnerServlet extends HttpServlet {
             Result compilationAndExecutionResult = builderAndCompiler.buildAndCompile(model, 10, TimeUnit.SECONDS);
             Collection<ProblemWithCode> compilationErrors = new ArrayList<>();
             Collection<ProblemWithCode> runtimeErrors = new ArrayList<>();
-            request.setAttribute("result", compilationAndExecutionResult.getStdout());
+            request.setAttribute("stdout", StringEscapeUtils.escapeEcmaScript(compilationAndExecutionResult.getStdout()));
             if (compilationAndExecutionResult.getCompilationDiagnostic().size() == 0 && compilationAndExecutionResult.getRuntimeError().size() == 0) {
 
 
                 if ((editorModel.getAnswser() == null) || editorModel.getAnswser().isBlank()) {
                     request.setAttribute("success", "true");
+                    request.setAttribute("result", compilationAndExecutionResult.getStdout());
 
                 } else if (editorModel.getAnswser().trim().equals(compilationAndExecutionResult.getStdout().trim())) {
                     request.setAttribute("success", "true");
@@ -165,11 +165,11 @@ public class RunnerServlet extends HttpServlet {
 
                 if (compilationAndExecutionResult.getStdout().length() > 0) {
                     sb.append(compilationAndExecutionResult.getStdout());
-                }
-                else{
+                } else {
                     sb.append("<<no standard output>>");
                 }
                 request.setAttribute("result", sb.toString());
+
 
 
                 compilationErrors.addAll(compilationAndExecutionResult.getCompilationDiagnostic().stream()
@@ -178,9 +178,7 @@ public class RunnerServlet extends HttpServlet {
                         .collect(Collectors.toList()));
 
                 runtimeErrors.addAll(compilationAndExecutionResult.getRuntimeError().stream()
-                        .flatMap(r -> r.getStackTraceElements()
-                                .stream()
-                                .map(ste -> new ProblemWithCode(r.getMessage(), "execution-error", ste.lineNumber() - 1, 0, ste.lineNumber() - 1, 99))
+                        .flatMap(r -> getRuntimeErrorsStream(r)
                         ).collect(Collectors.toList()));
 
 
@@ -202,6 +200,15 @@ public class RunnerServlet extends HttpServlet {
                 forward(request, response);
 
 
+    }
+
+    private static Stream<ProblemWithCode> getRuntimeErrorsStream(RuntimeError r) {
+        if (r.getStackTraceElements().size() == 0) {
+            return Arrays.asList(new ProblemWithCode(StringEscapeUtils.escapeEcmaScript(r.getMessage()), "no stack trace provided", 0, 0, 0, 0)).stream();
+        }
+        return r.getStackTraceElements()
+                .stream()
+                .map(ste -> new ProblemWithCode(StringEscapeUtils.escapeEcmaScript(r.getMessage()), "execution-error", ste.lineNumber() - 1, 0, ste.lineNumber() - 1, 99));
     }
 
 

@@ -52,7 +52,7 @@
                 <li class="list-group-item d-flex justify-content-between align-items-center<WN btn-group ">
 
                     <button class="btn btn-secondary"
-                       href="${pageContext.request.contextPath}/?gistId=${gist.getGistId()}"><c:out
+                            href="${pageContext.request.contextPath}/?gistId=${gist.getGistId()}"><c:out
                             value="${gist.description}"></c:out></button>
                     <i id="gist-${gist.getGistId()}" class="exercise"></i>
                 </li>
@@ -97,6 +97,49 @@
 </div>
 </body>
 <script>
+
+    function logEvent(eventType, payload, grace_delay) {
+        if (grace_delay == undefined) {
+            return logEvent(eventType, payload, 0);
+        } else {
+            if (eventSinkSocket && eventSinkSocket.readyState == WebSocket.OPEN) {
+                let event = JSON.stringify({
+                    "application": "miage-code-crafting",
+                    "type": eventType,
+                    "payload": payload
+                });
+                let sendEvent = () => {
+                    eventSinkSocket.send(event);
+                };
+                if (grace_delay > 0 ) {
+                    if (eventMap.has(eventType)) {
+                        window.clearTimeout(eventMap.get(eventType));
+
+                    }
+                    eventMap.set(eventType, setTimeout(sendEvent, grace_delay));
+                }
+                else{
+                    sendEvent();
+                }
+
+            } else {
+                console.log("event-sink connection lost");
+            }
+        }
+    }
+
+    var event_sink_ws = "${eventSinkWsAddress}";
+    var jwtToken = "${authToken}";
+    var eventSinkSocket = undefined;
+    if (jwtToken) {
+        eventSinkSocket = new WebSocket(event_sink_ws, ["access_token", jwtToken]);
+        eventSinkSocket.onopen = function () {
+            setInterval(() => eventSinkSocket.send("keepalive"), 50000);
+            let payload = {"url": window.location};
+            logEvent("java-runner-home-loaded", payload);
+        }
+    }
+
     function overlayOn(icon) {
         var overlay = document.getElementById("overlay");
 
@@ -107,15 +150,17 @@
         elClone.addEventListener("click", function (event) {
             overlayOff(icon);
             icon.classList.remove("hithere");
+            logEvent("java-runner-home-assess-exercice",{"assesment":event.target.innerText,"exerciseId":icon.id});
         });
 
     }
 
     function overlayOff(icon) {
         document.getElementById("overlay").style.display = "none";
-        }
+    }
 
     function cliked_not_started_icon(icon) {
+        logEvent("java-runner-home-started-exercice", {"exerciceID": icon.id});
         icon.classList.toggle("bi-hourglass-top");
         localStorage.setItem(icon.id, "started");
         icon.classList.add("bi-hourglass-split");
@@ -144,6 +189,10 @@
                     localStorage.setItem(icon.id, "not started");
                 }
             }
+            logEvent("java-runner-home-exercice-status-changed", {
+                "exerciceID": icon.id,
+                "status": localStorage.getItem(icon.id)
+            });
             ;
 
 

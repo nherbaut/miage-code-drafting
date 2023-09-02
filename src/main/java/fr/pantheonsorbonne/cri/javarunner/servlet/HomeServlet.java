@@ -31,6 +31,7 @@ public class HomeServlet extends HttpServlet {
                          HttpServletResponse response) throws ServletException, IOException {
 
         String filter = request.getParameter("filter");
+        request.setAttribute("eventSinkWsAddress", System.getenv("EVENT_SINK_SERVER_WS"));
 
         Map<String, List<GHGist>> gistMap = (Map<String, List<GHGist>>) request.getServletContext().getAttribute("gistMap");
         Long gistMapTimeout = (Long) request.getServletContext().getAttribute("gistMapTimeout");
