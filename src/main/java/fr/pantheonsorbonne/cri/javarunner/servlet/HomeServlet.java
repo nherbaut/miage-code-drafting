@@ -33,35 +33,35 @@ public class HomeServlet extends HttpServlet {
         String filter = request.getParameter("filter");
         request.setAttribute("eventSinkWsAddress", System.getenv("EVENT_SINK_SERVER_WS"));
 
-        Map<String, List<GHGist>> gistMap = (Map<String, List<GHGist>>) request.getServletContext().getAttribute("gistMap");
-        Long gistMapTimeout = (Long) request.getServletContext().getAttribute("gistMapTimeout");
-        if (gistMap == null || gistMapTimeout == null || gistMapTimeout < System.currentTimeMillis()) {
 
-
+        Long gistTimeout = (Long) request.getServletContext().getAttribute("gistMapTimeout");
+        List<GHGist> gistList = (List<GHGist>) request.getServletContext().getAttribute("gistList");
+        if (gistList == null || gistTimeout < System.currentTimeMillis()) {
             GitHub github = new GitHubBuilder().withOAuthToken(ghClientSecret).build();
-            PagedIterable<GHGist> gists = github.getUser("nherbaut").listGists();
-            Predicate<GHGist> gistFilter;
-            if (filter != null) {
-                gistFilter = g -> g.getDescription().contains(filter);
-            } else {
-                gistFilter = Predicates.alwaysTrue();
-            }
+            gistList = github.getUser("nherbaut").listGists().toList();
+            request.getServletContext().setAttribute("gistList", gistList);
 
-            gistMap = new TreeMap<>();
-            gistMap.putAll(StreamSupport.stream(gists.spliterator(), false)
-                    .filter(gistFilter)
-                    .collect(
-                            Collectors.groupingBy(
-                                    g -> Arrays.stream(g.getDescription().split("\\.")).limit(3).collect(Collectors.joining(" ")))));
-            gistMap.values().forEach(l -> l.sort(Comparator.comparing(GHGist::getDescription)));
-            request.getServletContext().setAttribute("gistMap",gistMap);
-            //1h timeout
-            long timeout=System.currentTimeMillis()+1000L*60*60;
-            request.getServletContext().setAttribute("gistMapTimeout",Long.valueOf(timeout));
         }
 
-        request.setAttribute("filter", filter);
-        request.setAttribute("gists", gistMap);
+
+        Predicate<GHGist> gistFilter;
+        if (filter != null) {
+            gistFilter = g -> g.getDescription().contains(filter);
+        } else {
+            gistFilter = Predicates.alwaysTrue();
+        }
+
+        Map<String, List<GHGist>> gistMap = new TreeMap<>();
+        gistMap.putAll(StreamSupport.stream(gistList.spliterator(), false)
+                .filter(gistFilter)
+                .collect(
+                        Collectors.groupingBy(
+                                g -> Arrays.stream(g.getDescription().split("\\.")).limit(3).collect(Collectors.joining(" ")))));
+        gistMap.values().forEach(l -> l.sort(Comparator.comparing(GHGist::getDescription)));
+        request.getServletContext().setAttribute("gists", gistMap);
+        //1h timeout
+        long timeout = System.currentTimeMillis() + 1000L * 60 * 60;
+        request.getServletContext().setAttribute("gistMapTimeout", Long.valueOf(timeout));
 
 
         request.getRequestDispatcher("/WEB-INF/jsp/home.jsp").forward(request, response);
