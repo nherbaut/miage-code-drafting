@@ -23,7 +23,7 @@ public class HomeServlet extends HttpServlet {
     private final String ghClientSecret;
 
     public HomeServlet() {
-        ghClientSecret = System.getenv("GH_CLIENT_SECRET");
+        ghClientSecret = System.getenv("GH_ACCESS_TOKEN");
     }
 
     @Override
@@ -32,11 +32,12 @@ public class HomeServlet extends HttpServlet {
 
         String filter = request.getParameter("filter");
         request.setAttribute("eventSinkWsAddress", System.getenv("EVENT_SINK_SERVER_WS"));
+        Object refresh = request.getParameter("refresh");
 
 
         Long gistTimeout = (Long) request.getServletContext().getAttribute("gistMapTimeout");
         List<GHGist> gistList = (List<GHGist>) request.getServletContext().getAttribute("gistList");
-        if (gistList == null || gistTimeout < System.currentTimeMillis()) {
+        if (gistList == null || gistTimeout < System.currentTimeMillis() || (refresh!=null && Boolean.parseBoolean(refresh.toString()))) {
             GitHub github = new GitHubBuilder().withOAuthToken(ghClientSecret).build();
             gistList = github.getUser("nherbaut").listGists().toList();
             request.getServletContext().setAttribute("gistList", gistList);

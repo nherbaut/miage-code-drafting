@@ -2,16 +2,12 @@ package fr.pantheonsorbonne.cri.javarunner.auth;
 
 import com.google.common.collect.Streams;
 import jakarta.servlet.*;
-import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
-import org.apache.catalina.AccessLog;
-import org.apache.catalina.Globals;
-import org.apache.juli.logging.Log;
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyWebTarget;
 import org.slf4j.Logger;
@@ -69,7 +65,7 @@ public class JWTFilter implements Filter {
             ResteasyWebTarget target = client.target(this.authServerURLInteral);
 
             CheckClaimResource checkClaimResource = target.proxy(CheckClaimResource.class);
-            Response resp = checkClaimResource.checkRecaptcha("Bearer " + jWTtoken);
+            Response resp = checkClaimResource.checkAuthorization("Bearer " + jWTtoken);
             if (resp.getStatus() == 200) {
                 var cookie = new Cookie("auth-token", jWTtoken);
                 cookie.setSecure(true);
@@ -83,10 +79,6 @@ public class JWTFilter implements Filter {
         }
 
         //if we are here, we need a new token
-        LOGGER.atDebug().log(() -> "Headers for query passing the JWTFilter: " + Streams.stream(request.getHeaderNames().asIterator()).map(hn -> String.format("%s:%s", hn, request.getHeader(hn))).collect(Collectors.joining(",")));
-
-        LOGGER.atDebug().log(() -> "Attributes for request passing the JWTFilter: " + Streams.stream(request.getAttributeNames().asIterator()).map(hn -> String.format("%s:%s", hn, request.getAttribute(hn).toString())).collect(Collectors.joining(",")));
-
         String host = request.getHeader("host").split(":")[0];
         if (request.getHeader("x-forwarded-host") != null) {
             host = request.getHeader("x-forwarded-host");

@@ -8,7 +8,7 @@ export async function createNewGist(content, access_token) {
 
     octokit.request('POST /gists', {
         description: 'Created from MIAGE Code Crafting',
-        'public': false,
+        'public': true,
         files: {
             'Main.java': {
                 content: content

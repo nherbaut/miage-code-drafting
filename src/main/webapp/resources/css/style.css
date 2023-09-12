@@ -3,15 +3,11 @@ span#logo{
     width: 200px;
     background-image: url("../img/logo.png");
     background-size: 200px 60px;
+    display:inline-block
 }
-
-#main-container {
-    padding: 0;
-    margin:0;
-    max-width: 95%;
-    width:95%;
+#editor-row{
+    --bs-gutter-x: 0em;
 }
-
 
 
 h1.main{
@@ -27,8 +23,7 @@ textarea {
     height: 150px;
 }
 
-#btn-run {
-
+button {
     width: 100%;
 }
 
@@ -81,3 +76,28 @@ textarea {
 #codeTooltip.visible{
     display: inherit;
 }
+
+[role="tooltip"],
+.hidetooltip.hidetooltip.hidetooltip + [role="tooltip"] {
+    visibility: hidden;
+    position: absolute;
+    top: 2rem;
+    left: 2rem;
+    background: black;
+    color: white;
+}
+[aria-describedby]:hover,
+[aria-describedby]:focus {
+    position: relative;
+}
+[aria-describedby]:hover + [role="tooltip"],
+[aria-describedby]:focus + [role="tooltip"] {
+    visibility: visible;
+}
+
+#editor{
+    height: 350px;
+
+}
+
+

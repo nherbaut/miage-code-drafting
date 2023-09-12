@@ -37,126 +37,152 @@
 
 </head>
 <body>
-<c:choose>
-<c:when test="${empty gistId}">
-<form id="theform" method="POST" enctype="multipart/form-data">
-    </c:when>
-    <c:otherwise>
-    <form id="theform" method="POST" gistId="${gistId}" updated="true" enctype="multipart/form-data">
-        <input name="gistId" value="${gistId}" hidden>
-        </c:otherwise>
-        </c:choose>
-
-        <div id="main-container" class="container">
-            <div class="row">
-                <span id="logo"></span>
-                <a href="${pageContext.request.contextPath}/home?filter=L3"><h1 class="main">MIAGE Code Crafting</a>
-                <span id="gist_title"></span></h1>
-            </div>
-
-            <div class="row">
-                <div class="col col-code">
-                    <div id="editor" style="width: 100%; height: 350px"><c:out value="${code}"/></div>
-                    <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
-                        <div class="btn-group" role="group">
-                            <button class="btn btn-secondary dropdown-toggle" type="button"
-                                    data-bs-toggle="dropdown" aria-expanded="false">GitHub Actions
-                            </button>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item btn btn-secondary" href="#" id="ghauth">authorize github</a>
-                                </li>
-                                <li>
-                                    <hr class="dropdown-divider">
-                                </li>
-                                <c:choose>
-                                    <c:when test="${empty gistId}">
-                                        <li><a class="dropdown-item btn btn-secondary" id="gistsave" disabled>Save as
-                                            new Gist
-                                        </a></li>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <li><a class="dropdown-item btn btn-secondary" id="gistupdate" hidden>Update
-                                            Gist
-
-                                        </a></li>
-                                        <li>
-                                            <a class="dropdown-item btn btn-secondary" id="gistshare" hidden>Open in new
-                                                tab
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item btn btn-secondary" id="gisthtmlurl" hidden>Open
-                                                original Gist
-                                            </a>
-                                        </li>
-                                    </c:otherwise>
-                                </c:choose>
-                            </ul>
-                        </div>
-                        <button type="button" class="btn btn-sm btn-secondary" id="save-maven">Download as Maven
-                        </button>
-                        <button type="button" id="btn-run" class="btn btn-sm btn-primary" type="submit">Run
-                            (CTRL+ENTER)
-                        </button>
-                        <a type="button" id="btn-instructions" class="btn btn-sm btn-info" target="_blank" hidden>Get
-                            Instructions</a>
+<div id="main-container" class="container-fluid">
 
 
-                    </div>
+    <div class="row">
+        <div class="col-12">
+            <span id="logo"></span>
+            <a href="${pageContext.request.contextPath}/home?filter=L3"><h1 class="main">MIAGE Code Crafting</h1>
+            </a>
+            <span id="gist_title"></span></h1>
+        </div>
+    </div>
+    <div class="row" id="editor-row">
 
-                </div>
-                <div class="row">
-                    <div class="col col-res">
+        <div class="col-12" id="editor"><c:out value="${code}"/></div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
+                <div class="btn-group" role="group">
+                    <button class="btn btn-secondary dropdown-toggle" type="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">GitHub Actions
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item btn btn-secondary" href="#" id="ghauth">authorize github</a>
+                        </li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
                         <c:choose>
-                            <c:when test="${empty success}">
-                                <div class="alert alert-secondary" role="alert">
-                                    Ready to code!
-                                </div>
-                            </c:when>
-                            <c:when test="${success==false}">
-                                <div class="alert alert-danger" role="alert">
-                                    Something went wrong
-                                </div>
+                            <c:when test="${empty gistId}">
+                                <li><a class="dropdown-item btn btn-secondary" id="gistsave" disabled>Save as
+                                    new Gist
+                                </a></li>
                             </c:when>
                             <c:otherwise>
-                                <div class="alert alert-success" role="alert">
-                                    Execution successful
-                                </div>
+                                <li><a class="dropdown-item btn btn-secondary" id="gistupdate" hidden>Update
+                                    Gist
+
+                                </a></li>
+                                <li>
+                                    <a class="dropdown-item btn btn-secondary" id="gistshare" hidden>Open in new
+                                        tab
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item btn btn-secondary" id="gisthtmlurl" hidden>Open
+                                        original Gist
+                                    </a>
+                                </li>
                             </c:otherwise>
                         </c:choose>
-
-
-                        <textarea readonly>${result}</textarea>
-
-                    </div>
+                    </ul>
                 </div>
-                <div>
-                    <textarea name="code" id="code" hidden></textarea>
-                </div>
+                <button type="button" class="btn btn-sm btn-secondary" id="save-maven">Download as Maven
+                </button>
+                <button type="button" id="btn-instructions" class="btn btn-sm btn-info" type="submit"
+                        data-bs-toggle="collapse" data-bs-target="#collapseInstructions" aria-expanded="false"
+                        aria-controls="collapseInstructions" hidden>Get
+                    Instructions
+                </button>
+                <button type="button" id="btn-run" class="btn btn-sm btn-primary" type="submit">Run (CTRL+ENTER)
+                </button>
+
 
             </div>
-
-
-            <div id="expected-output" hidden>
-                <h2>Expected Output:</h2>
-                <textarea readonly id="answers">${answers}</textarea>
-                <textarea readonly class="answers" hidden name="answers"></textarea>
-            </div>
-
-
         </div>
-    </form>
+
+        <div hidden>
+            <c:choose>
+            <c:when test="${empty gistId}">
+            <form id="theform" method="POST" enctype="multipart/form-data">
+                </c:when>
+                <c:otherwise>
+                <form id="theform" method="POST" gistId="${gistId}" updated="true" enctype="multipart/form-data">
+                    <input name="gistId" value="${gistId}" hidden>
+                    </c:otherwise>
+                    </c:choose>
+                    <textarea name="code" id="code" hidden></textarea>
+                </form>
+        </div>
+
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 g-4">
+        <div class="col-12">
+            <div class="card bg-warning text-dark collapse" style="width: 40rem;" id="collapseInstructions">
+                <div class="card-header">Instructions</div>
+                <div class="card-body">
+                    <p class="card-text" id="instructions-text">
+                        Some placeholder content for the collapse component. This panel is hidden by default but
+                        revealed
+                        when the user activates the relevant trigger.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <c:choose>
+                <c:when test="${empty success}">
+                    <div class="alert alert-secondary" role="alert">
+                        Ready to code!
+                    </div>
+                </c:when>
+                <c:when test="${success==false}">
+                    <div class="alert alert-danger" role="alert">
+                        Something went wrong
+                    </div>
+                </c:when>
+                <c:otherwise>
+                    <div class="alert alert-success" role="alert">
+                        Execution successful
+                    </div>
+                </c:otherwise>
+            </c:choose>
 
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.24.1/ace.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.24.1/mode-java.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.24.1/ext-language_tools.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.24.1/theme-textmate.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
-            integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
-            crossorigin="anonymous"></script>
+            <textarea readonly>${result}</textarea>
+        </div>
 
-    <span id="codeTooltip">issue here</span>
+
+    </div>
+    <div class="row" id="expected-output" hidden>
+
+        <div class="col-12">
+            <h2>Expected Output:</h2>
+            <textarea readonly id="answers">${answers}</textarea>
+            <textarea readonly class="answers" hidden name="answers"></textarea>
+        </div>
+    </div>
+
+
+</div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.24.1/ace.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.24.1/mode-java.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.24.1/ext-language_tools.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.24.1/theme-textmate.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+        crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<span id="codeTooltip">issue here</span>
 </body>
 
 
@@ -197,7 +223,20 @@
             gist_id: gistId
         });
         document.getElementById("btn-instructions").hidden = false;
+
+
+        var comments = Object.entries(gist.data.files).find(entry => entry[1].filename == "Comments.md");
+        if (comments !== undefined && comments.length > 0) {
+            comments = comments[1].content;
+            if (comments != null && comments != "") {
+                document.getElementById("instructions-text").innerHTML = marked.parse(comments);
+
+
+            }
+        }
+
         document.getElementById("btn-instructions").setAttribute("href", gist.data.html_url + "#file-comments-md");
+        document.getElementById("btn-instructions").setAttribute("title", gist.data.html_url + "#file-comments-md");
         if ((updated == null || updated == false)) {
 
             ace.edit("editor").getSession().setValue(Object.entries(gist.data.files).find(entry => entry[1].language == "Java")[1].content);
@@ -246,16 +285,16 @@
 
             <c:forEach var="compilationError" items="${compilationErrors}">
             payload.runRunResults.compilationErrors.push({
-                "message" : "${compilationError.message()}",
-                "kind" : "${compilationError.kind()}"
+                "message": "${compilationError.message()}",
+                "kind": "${compilationError.kind()}"
             });
             </c:forEach>
             payload.runRunResults.runtimeErrors = [];
 
             <c:forEach var="runtimeError" items="${runtimeErrors}">
             payload.runRunResults.runtimeErrors.push({
-                "message" : "${runtimeError.message()}",
-                "kind" : "${runtimeError.kind()}"
+                "message": "${runtimeError.message()}",
+                "kind": "${runtimeError.kind()}"
             });
 
             </c:forEach>
@@ -356,6 +395,7 @@
             tooltip.style.left = e.pageX + 'px';
             tooltip.style.top = e.pageY + 'px';
         }, false);
+
 
         // update gist callback
         const urlParams = new URLSearchParams(window.location.search);
