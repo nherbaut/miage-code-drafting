@@ -50,7 +50,7 @@ public class RunnerServlet extends HttpServlet {
         String run = request.getParameter("run");
         String gistId = request.getParameter("gistId");
         request.setAttribute("eventSinkWsAddress", System.getenv("EVENT_SINK_SERVER_WS"));
-
+        request.setAttribute("eventSinkServer", System.getenv("EVENT_SINK_SERVER"));
         if (gistId != null) {
             request.setAttribute("gistId", gistId);
         }
@@ -78,6 +78,7 @@ public class RunnerServlet extends HttpServlet {
         String base64Code = request.getParameter("code");
         request.setAttribute("client_id", ghClientId);
         request.setAttribute("eventSinkWsAddress", System.getenv("EVENT_SINK_SERVER_WS"));
+        request.setAttribute("eventSinkServer", System.getenv("EVENT_SINK_SERVER"));
 
         EditorModel editorModel = new EditorModel();
         if (base64Code != null) {

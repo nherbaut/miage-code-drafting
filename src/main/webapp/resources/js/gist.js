@@ -12,10 +12,8 @@ export async function createNewGist(content, access_token) {
         files: {
             'Main.java': {
                 content: content
-            },
-            'Comments.md': {
-                content: "# Description \n## Teaching Goals\n## Hints"
             }
+
         }
     }).then(response => {
         window.open(response.data.html_url, "_blank");

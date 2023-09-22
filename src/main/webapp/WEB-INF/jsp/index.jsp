@@ -182,6 +182,7 @@
         integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
         crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
 <span id="codeTooltip">issue here</span>
 </body>
 
@@ -265,50 +266,48 @@
 
 <script type="module">
     import {updateGistContent, createNewGist} from "${pageContext.request.contextPath}/resources/js/gist.js";
-
-    var event_sink_ws = "${eventSinkWsAddress}";
-    var jwtToken = "${authToken}";
-    var eventSinkSocket = undefined;
-    if (jwtToken) {
-        eventSinkSocket = new WebSocket(event_sink_ws, ["access_token", jwtToken]);
-        eventSinkSocket.onopen = function () {
-            setInterval(() => eventSinkSocket.send("keepalive"), 50000);
-            let payload = {"loadedCode": ace.edit("editor").getValue()};
-            <c:choose>
-            <c:when test="${not empty success}">
-            payload.wasRun = true;
-            payload.runRunResults = {
-                "success":${success}
-            };
-
-            payload.runRunResults.compilationErrors = [];
-
-            <c:forEach var="compilationError" items="${compilationErrors}">
-            payload.runRunResults.compilationErrors.push({
-                "message": "${compilationError.message()}",
-                "kind": "${compilationError.kind()}"
-            });
-            </c:forEach>
-            payload.runRunResults.runtimeErrors = [];
-
-            <c:forEach var="runtimeError" items="${runtimeErrors}">
-            payload.runRunResults.runtimeErrors.push({
-                "message": "${runtimeError.message()}",
-                "kind": "${runtimeError.kind()}"
-            });
-
-            </c:forEach>
+    import {setupEventChannel, logEvent} from "${eventSinkServer}/js/feedback.js";
 
 
-            payload.runRunResults.stdout = "${stdout}";
-            </c:when>
 
 
-            </c:choose>
+    setupEventChannel("${eventSinkWsAddress}", "${authToken}", "javarunner",function () {
+        let payload = {"loadedCode": ace.edit("editor").getValue()};
+        <c:choose>
+        <c:when test="${not empty success}">
+        payload.wasRun = true;
+        payload.runRunResults = {
+            "success":${success}
+        };
 
-            logEvent("java-runner-loaded", payload);
-        }
-    }
+        payload.runRunResults.compilationErrors = [];
+
+        <c:forEach var="compilationError" items="${compilationErrors}">
+        payload.runRunResults.compilationErrors.push({
+            "message": "${compilationError.message()}",
+            "kind": "${compilationError.kind()}"
+        });
+        </c:forEach>
+        payload.runRunResults.runtimeErrors = [];
+
+        <c:forEach var="runtimeError" items="${runtimeErrors}">
+        payload.runRunResults.runtimeErrors.push({
+            "message": "${runtimeError.message()}",
+            "kind": "${runtimeError.kind()}"
+        });
+
+        </c:forEach>
+
+
+        payload.runRunResults.stdout = "${stdout}";
+        </c:when>
+
+
+        </c:choose>
+
+        logEvent("java-runner-loaded", payload);
+    });
+
 
     function onSubmit() {
 
@@ -357,38 +356,9 @@
         });
     })
 
-    var eventMap = new Map();
-
-    function logEvent(eventType, payload, grace_delay) {
-        if (grace_delay == undefined) {
-            return logEvent(eventType, payload, 0);
-        } else {
-            if (eventSinkSocket && eventSinkSocket.readyState == WebSocket.OPEN) {
-                let event = JSON.stringify({
-                    "application": "miage-code-crafting",
-                    "type": eventType,
-                    "payload": payload
-                });
-                let sendEvent = () => {
-                    eventSinkSocket.send(event);
-                };
-                if (grace_delay > 0) {
-                    if (eventMap.has(eventType)) {
-                        window.clearTimeout(eventMap.get(eventType));
-
-                    }
-                    eventMap.set(eventType, setTimeout(sendEvent, grace_delay));
-                } else {
-                    sendEvent();
-                }
-
-            } else {
-                console.log("event-sink connection lost");
-            }
-        }
-    }
 
     window.addEventListener("load", function (e) {
+
 
         var tooltip = document.getElementById('codeTooltip');
         document.addEventListener('mousemove', function fn(e) {
@@ -453,7 +423,7 @@
             }
             logEvent("code-changed", {
                 "newCode": {
-                    "code:": ace.edit("editor").getValue()
+                    "code": ace.edit("editor").getValue()
                 }
             }, 500);
         });
@@ -572,4 +542,5 @@
 
 
 </script>
+
 </html>

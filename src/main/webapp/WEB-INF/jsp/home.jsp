@@ -69,89 +69,64 @@
         <p class="container">
 
         <div class="row overlay-icons">
-            <div class="col">
-                <i class="bi bi-person-exclamation"></i>
+            <div class="col assessment" feddback-type="hard">
+                <i class="bi bi-person-exclamation" ></i>
+                <div class="col">
+                    Difficile
+                </div>
             </div>
-            <div class="col">
-                <i class="bi bi-person"></i>
+            <div class="col assessment" feddback-type="ok">
+                <i class="bi bi-person" ></i>
+                <div class="col text-center">
+                    Ça va
+                </div>
             </div>
-            <div class="col">
-                <i class="bi bi-person-fill-check"></i>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col">
-                Difficile
-            </div>
-            <div class="col text-center">
-                Ça va
-            </div>
-            <div class="col text-center">
-                Facile
+            <div class="col assessment" feddback-type="easy">
+                <i class="bi bi-person-fill-check" ></i>
+                <div class="col text-center">
+                    Facile
+                </div>
             </div>
         </div>
+
 
         </p>
     </div>
 
 </div>
 </body>
-<script>
+<script type="module">
 
-    function logEvent(eventType, payload, grace_delay) {
-        if (grace_delay == undefined) {
-            return logEvent(eventType, payload, 0);
-        } else {
-            if (eventSinkSocket && eventSinkSocket.readyState == WebSocket.OPEN) {
-                let event = JSON.stringify({
-                    "application": "miage-code-crafting",
-                    "type": eventType,
-                    "payload": payload
-                });
-                let sendEvent = () => {
-                    eventSinkSocket.send(event);
-                };
-                if (grace_delay > 0 ) {
-                    if (eventMap.has(eventType)) {
-                        window.clearTimeout(eventMap.get(eventType));
+    import {setupEventChannel, logEvent} from "http://localhost:8081/js/feedback.js";
 
-                    }
-                    eventMap.set(eventType, setTimeout(sendEvent, grace_delay));
-                }
-                else{
-                    sendEvent();
-                }
+    ;
 
-            } else {
-                console.log("event-sink connection lost");
-            }
-        }
-    }
-
-    var event_sink_ws = "${eventSinkWsAddress}";
-    var jwtToken = "${authToken}";
-    var eventSinkSocket = undefined;
-    if (jwtToken) {
-        eventSinkSocket = new WebSocket(event_sink_ws, ["access_token", jwtToken]);
-        eventSinkSocket.onopen = function () {
-            setInterval(() => eventSinkSocket.send("keepalive"), 50000);
-            let payload = {"url": window.location};
-            logEvent("java-runner-home-loaded", payload);
-        }
-    }
+    <c:if test="${authToken!=null}">
+    setupEventChannel("${eventSinkWsAddress}", "${authToken}", "javarunner", function () {
+        setInterval(() => eventSinkSocket.send("keepalive"), 50000);
+        let payload = {"url": window.location};
+        logEvent("java-runner-home-loaded", payload);
+    })
+    </c:if>
 
     function overlayOn(icon) {
         var overlay = document.getElementById("overlay");
 
-        elClone = overlay.cloneNode(true);
+        var elClone = overlay.cloneNode(true);
 
         overlay.parentNode.replaceChild(elClone, overlay);
         elClone.style.display = "block";
-        elClone.addEventListener("click", function (event) {
-            overlayOff(icon);
-            icon.classList.remove("hithere");
-            logEvent("java-runner-home-assess-exercice",{"assesment":event.target.innerText,"exerciseId":icon.id});
-        });
+
+        for(let choice of elClone.querySelectorAll(".assessment")) {
+            choice.logged("java-runner-home-assess-exercice", {
+                    "assessment": choice.getAttribute("feddback-type"),
+                    "exerciseId": icon.id
+                },
+                "click", function (event) {
+                    overlayOff(icon);
+                    icon.classList.remove("hithere");
+                });
+        }
 
     }
 

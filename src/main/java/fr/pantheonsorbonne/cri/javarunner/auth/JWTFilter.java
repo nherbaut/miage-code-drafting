@@ -70,8 +70,10 @@ public class JWTFilter implements Filter {
                 var cookie = new Cookie("auth-token", jWTtoken);
                 cookie.setSecure(true);
                 cookie.setMaxAge(Integer.MAX_VALUE);
+                cookie.setDomain("miage.dev");
 
                 response.addCookie(cookie);
+                request.setAttribute("authToken", jWTtoken);
                 request.getSession(true).setAttribute("authToken", jWTtoken);
                 chain.doFilter(request, response);
                 return;
