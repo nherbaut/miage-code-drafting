@@ -97,7 +97,7 @@
 </body>
 <script type="module">
 
-    import {setupEventChannel, logEvent} from "http://localhost:8081/js/feedback.js";
+    import {setupEventChannel, logEvent} from "${eventSinkServer}/js/feedback.js";
 
     ;
 

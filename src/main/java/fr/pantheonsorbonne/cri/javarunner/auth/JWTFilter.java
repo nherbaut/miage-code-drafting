@@ -46,6 +46,11 @@ public class JWTFilter implements Filter {
 
     private void doFilter(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
 
+        //we may need host when storing the cookie or redirecting for auth
+        String host = request.getHeader("host").split(":")[0];
+        if (request.getHeader("x-forwarded-host") != null) {
+            host = request.getHeader("x-forwarded-host");
+        }
 
         //first check if the jwt token is in the headers
         String bearer = request.getHeader("Authorization");
@@ -81,10 +86,7 @@ public class JWTFilter implements Filter {
         }
 
         //if we are here, we need a new token
-        String host = request.getHeader("host").split(":")[0];
-        if (request.getHeader("x-forwarded-host") != null) {
-            host = request.getHeader("x-forwarded-host");
-        }
+
 
         String protocol = "http";
         if (request.getHeader("x-forwarded-scheme") != null) {

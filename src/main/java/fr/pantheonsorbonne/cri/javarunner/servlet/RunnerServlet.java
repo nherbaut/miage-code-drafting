@@ -51,6 +51,7 @@ public class RunnerServlet extends HttpServlet {
         String gistId = request.getParameter("gistId");
         request.setAttribute("eventSinkWsAddress", System.getenv("EVENT_SINK_SERVER_WS"));
         request.setAttribute("eventSinkServer", System.getenv("EVENT_SINK_SERVER"));
+        request.setAttribute("codeSnippetAPIURL", System.getenv("CODE_SNIPPET_API_URL"));
         if (gistId != null) {
             request.setAttribute("gistId", gistId);
         }
@@ -79,7 +80,7 @@ public class RunnerServlet extends HttpServlet {
         request.setAttribute("client_id", ghClientId);
         request.setAttribute("eventSinkWsAddress", System.getenv("EVENT_SINK_SERVER_WS"));
         request.setAttribute("eventSinkServer", System.getenv("EVENT_SINK_SERVER"));
-
+        request.setAttribute("codeSnippetAPIURL", System.getenv("CODE_SNIPPET_API_URL"));
         EditorModel editorModel = new EditorModel();
         if (base64Code != null) {
 

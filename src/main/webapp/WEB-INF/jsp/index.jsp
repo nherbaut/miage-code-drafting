@@ -57,41 +57,32 @@
             <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
                 <div class="btn-group" role="group">
                     <button class="btn btn-secondary dropdown-toggle" type="button"
-                            data-bs-toggle="dropdown" aria-expanded="false">GitHub Actions
+                            data-bs-toggle="dropdown" aria-expanded="false">Actions
                     </button>
                     <ul class="dropdown-menu">
-                        <li><a class="dropdown-item btn btn-secondary" href="#" id="ghauth">authorize github</a>
-                        </li>
+
+
+                        <li><a class="dropdown-item btn btn-secondary" id="gistsave">Save Code
+                        </a></li>
+                        <li><a class="dropdown-item btn btn-secondary" id="show-my-snippets"
+                               href="${codeSnippetAPIURL}/user/me">My Saved Code
+                        </a></li>
                         <li>
                             <hr class="dropdown-divider">
                         </li>
-                        <c:choose>
-                            <c:when test="${empty gistId}">
-                                <li><a class="dropdown-item btn btn-secondary" id="gistsave" disabled>Save as
-                                    new Gist
-                                </a></li>
-                            </c:when>
-                            <c:otherwise>
-                                <li><a class="dropdown-item btn btn-secondary" id="gistupdate" hidden>Update
-                                    Gist
+                        <li>
+                            <a class="dropdown-item btn btn-secondary" id="save-maven">Download as Maven
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item btn btn-secondary" id="needHelp">Request Help With this code
+                            </a>
+                        </li>
 
-                                </a></li>
-                                <li>
-                                    <a class="dropdown-item btn btn-secondary" id="gistshare" hidden>Open in new
-                                        tab
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item btn btn-secondary" id="gisthtmlurl" hidden>Open
-                                        original Gist
-                                    </a>
-                                </li>
-                            </c:otherwise>
-                        </c:choose>
+
                     </ul>
                 </div>
-                <button type="button" class="btn btn-sm btn-secondary" id="save-maven">Download as Maven
-                </button>
+
                 <button type="button" id="btn-instructions" class="btn btn-sm btn-info" type="submit"
                         data-bs-toggle="collapse" data-bs-target="#collapseInstructions" aria-expanded="false"
                         aria-controls="collapseInstructions" hidden>Get
@@ -209,11 +200,16 @@
 <script type="module">
     import {putBackCursorPosition} from "${pageContext.request.contextPath}/resources/js/cursor.js";
     import {Octokit, App} from "https://esm.sh/octokit";
+    import {
+        snippet_auth,
+        getSnippet
+    } from "${codeSnippetAPIURL}/js/snippet.js";
 
 
     const queryString = window.location.search;
     const urlParams = new URLSearchParams(queryString);
     const gistId = urlParams.get('gistId')
+    const snipId = urlParams.get('snipId')
     const updated = urlParams.get('updated')
 
     const octokit = new Octokit({});
@@ -254,6 +250,16 @@
         }
 
         putBackCursorPosition();
+    } else if (snipId != null) {
+        snippet_auth("${codeSnippetAPIURL}");
+        getSnippet(snipId).then(response => {
+            if (response.ok) {
+                response.json().then((snippet) => {
+                    ace.edit("editor").getSession().setValue(snippet.files[0].content);
+                });
+            }
+        })
+
     }
 
     if (updated == "true" && document.querySelector("#answers").value != "") {
@@ -269,9 +275,7 @@
     import {setupEventChannel, logEvent} from "${eventSinkServer}/js/feedback.js";
 
 
-
-
-    setupEventChannel("${eventSinkWsAddress}", "${authToken}", "javarunner",function () {
+    setupEventChannel("${eventSinkWsAddress}", "${authToken}", "javarunner", function () {
         let payload = {"loadedCode": ace.edit("editor").getValue()};
         <c:choose>
         <c:when test="${not empty success}">
@@ -385,34 +389,13 @@
                 }
             ));
 
-            document.querySelectorAll("#gistsave").forEach(e => e.addEventListener("click",
-                function onGistSaveClicked() {
-                    createNewGist(ace.edit("editor").getValue(), localStorage.getItem("access_token"));
-                }
-            ));
+
             document.querySelector("#ghauth").innerHTML = "github log out";
 
             document.querySelector("#ghauth").addEventListener("click", function () {
                 localStorage.removeItem("access_token");
                 location.reload();
             }, true);
-        } else {
-            document.querySelector("#ghauth").addEventListener("click",
-                function () {
-                    window.open("https://github.com/login/oauth/authorize?client_id=${client_id}&scope=gist");
-
-                    var f = function () {
-                        if (localStorage.getItem("access_token")) {
-                            location.reload();
-                        } else {
-                            setTimeout(f, 1000);
-                        }
-                    };
-                    setTimeout(f, 1000);
-
-
-                });
-
         }
 
 
@@ -504,21 +487,6 @@
         <c:choose>
         <c:when test="${not empty gistId}">
 
-        document.querySelector("#gistupdate").hidden = false;
-        document.querySelector("#gistshare").hidden = false;
-        document.querySelector("#gisthtmlurl").hidden = false;
-
-        document.querySelector("#gistshare").addEventListener("click", function () {
-            window.open(new URL("?gistId=${gistId}", document.location).href, "_blank");
-
-
-        });
-        document.querySelector("#gisthtmlurl").addEventListener("click", function () {
-
-            window.open("https://gist.github.com/${gistId}", "_blank");
-
-
-        });
 
         </c:when>
         <c:otherwise>
@@ -539,6 +507,55 @@
     function b64_to_utf8(str) {
         return decodeURIComponent(escape(window.atob(str)));
     }
+
+
+</script>
+
+<script type="module">
+
+    import {
+        snippet_auth,
+        getMySnippets,
+        delSnippet,
+        createSnippet,
+        createFile,
+        createComment
+    } from "${codeSnippetAPIURL}/js/snippet.js";
+
+    snippet_auth("${codeSnippetAPIURL}");
+
+    document.querySelectorAll("#gistsave").forEach(e => e.addEventListener("click",
+        function onGistSaveClicked() {
+            let title = prompt('Give a title to your code snippet');
+
+            createSnippet(title, [createFile("Code.java", ace.edit("editor").getSession().getValue())], []).then(response => {
+                if (response.ok) {
+                    if (window.confirm("Code saved, open it on external website?")) {
+                        window.open(response.headers.get("Location"), "_blank");
+                    }
+
+                } else {
+                    alert("failed to save code snippet");
+                }
+            });
+        }
+    ));
+
+    document.querySelectorAll("#needHelp").forEach(e => e.addEventListener("click",
+        function onGistSaveClicked() {
+            let helpRequestComment = prompt('Explain why you need help');
+
+            createSnippet("help requested", [createFile("Code.java", ace.edit("editor").getSession().getValue())], [createComment(helpRequestComment)]).then(response => {
+                if (response.ok) {
+                    if (window.confirm("Code saved, open it on external website?")) {
+                        window.open(response.headers.get("Location"), "_blank");
+                    }
+                } else {
+                    alert("failed to save code snippet");
+                }
+            });
+        }
+    ));
 
 
 </script>
