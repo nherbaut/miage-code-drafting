@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -52,6 +53,7 @@ public class RunnerServlet extends HttpServlet {
         request.setAttribute("eventSinkWsAddress", System.getenv("EVENT_SINK_SERVER_WS"));
         request.setAttribute("eventSinkServer", System.getenv("EVENT_SINK_SERVER"));
         request.setAttribute("codeSnippetAPIURL", System.getenv("CODE_SNIPPET_API_URL"));
+        request.setAttribute("preferred_name", request.getSession().getAttribute("preferred_name"));
         if (gistId != null) {
             request.setAttribute("gistId", gistId);
         }
@@ -81,6 +83,7 @@ public class RunnerServlet extends HttpServlet {
         request.setAttribute("eventSinkWsAddress", System.getenv("EVENT_SINK_SERVER_WS"));
         request.setAttribute("eventSinkServer", System.getenv("EVENT_SINK_SERVER"));
         request.setAttribute("codeSnippetAPIURL", System.getenv("CODE_SNIPPET_API_URL"));
+        request.setAttribute("preferred_name", request.getSession().getAttribute("preferred_name"));
         EditorModel editorModel = new EditorModel();
         if (base64Code != null) {
 
@@ -94,7 +97,7 @@ public class RunnerServlet extends HttpServlet {
                         if (!part.getName().equals("gistId")) {
                             decodedLine = new String(java.util.Base64.getDecoder().decode(r.lines().collect(Collectors.joining("\n"))));
                         } else {
-                            decodedLine = new String(r.lines().collect(Collectors.joining("\n")));
+                            decodedLine = r.lines().collect(Collectors.joining("\n"));
                         }
                         request.setAttribute(part.getName(), decodedLine);
                         switch (part.getName()) {
@@ -131,7 +134,7 @@ public class RunnerServlet extends HttpServlet {
             Collection<ProblemWithCode> compilationErrors = new ArrayList<>();
             Collection<ProblemWithCode> runtimeErrors = new ArrayList<>();
             request.setAttribute("stdout", StringEscapeUtils.escapeEcmaScript(compilationAndExecutionResult.getStdout()));
-            if (compilationAndExecutionResult.getCompilationDiagnostic().size() == 0 && compilationAndExecutionResult.getRuntimeError().size() == 0) {
+            if (compilationAndExecutionResult.getCompilationDiagnostic().isEmpty() && compilationAndExecutionResult.getRuntimeError().isEmpty()) {
 
 
                 if ((editorModel.getAnswser() == null) || editorModel.getAnswser().isBlank()) {
@@ -150,12 +153,12 @@ public class RunnerServlet extends HttpServlet {
                 request.setAttribute("success", "false");
 
                 StringBuilder sb = new StringBuilder("there is an issue processing your code:\n");
-                if (compilationAndExecutionResult.getCompilationDiagnostic().size() > 0) {
+                if (!compilationAndExecutionResult.getCompilationDiagnostic().isEmpty()) {
                     sb.append("Compilation Problems:\n");
                     sb.append("=====================\n");
                     compilationAndExecutionResult.getCompilationDiagnostic().forEach(d -> sb.append(getRangeFromDiagnostic(d, editorModel.getCode(), "compilation error")));
                 }
-                if (compilationAndExecutionResult.getRuntimeError().size() > 0) {
+                if (!compilationAndExecutionResult.getRuntimeError().isEmpty()) {
                     sb.append("\n\nExecution Problems:\n");
                     sb.append("=====================\n");
                     compilationAndExecutionResult.getRuntimeError().forEach(rte -> sb.append(rte.toString()));
@@ -165,7 +168,7 @@ public class RunnerServlet extends HttpServlet {
                 sb.append("\n\nStandard Output\n");
                 sb.append("===============\n");
 
-                if (compilationAndExecutionResult.getStdout().length() > 0) {
+                if (!compilationAndExecutionResult.getStdout().isEmpty()) {
                     sb.append(compilationAndExecutionResult.getStdout());
                 } else {
                     sb.append("<<no standard output>>");
@@ -173,15 +176,14 @@ public class RunnerServlet extends HttpServlet {
                 request.setAttribute("result", sb.toString());
 
 
-
                 compilationErrors.addAll(compilationAndExecutionResult.getCompilationDiagnostic().stream()
                         .map(d -> getRangeFromDiagnostic(d, editorModel.getCode(), "compilation-error")
                         )
-                        .collect(Collectors.toList()));
+                        .toList());
 
                 runtimeErrors.addAll(compilationAndExecutionResult.getRuntimeError().stream()
-                        .flatMap(r -> getRuntimeErrorsStream(r)
-                        ).collect(Collectors.toList()));
+                        .flatMap(RunnerServlet::getRuntimeErrorsStream
+                        ).toList());
 
 
             }
@@ -205,8 +207,8 @@ public class RunnerServlet extends HttpServlet {
     }
 
     private static Stream<ProblemWithCode> getRuntimeErrorsStream(RuntimeError r) {
-        if (r.getStackTraceElements().size() == 0) {
-            return Arrays.asList(new ProblemWithCode(StringEscapeUtils.escapeEcmaScript(r.getMessage()), "no stack trace provided", 0, 0, 0, 0)).stream();
+        if (r.getStackTraceElements().isEmpty()) {
+            return Stream.of(new ProblemWithCode(StringEscapeUtils.escapeEcmaScript(r.getMessage()), "no stack trace provided", 0, 0, 0, 0));
         }
         return r.getStackTraceElements()
                 .stream()
@@ -224,7 +226,7 @@ public class RunnerServlet extends HttpServlet {
         endRow = endRow == -1 ? 0 : endRow;
 
 
-        var range = new ProblemWithCode(
+        return new ProblemWithCode(
                 StringEscapeUtils.escapeEcmaScript(d.getMessageFR()),
                 kind,
                 startRow,
@@ -232,7 +234,6 @@ public class RunnerServlet extends HttpServlet {
                 endRow,
                 endColumn
         );
-        return range;
     }
 
 }

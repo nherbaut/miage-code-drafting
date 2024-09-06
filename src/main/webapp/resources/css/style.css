@@ -23,6 +23,10 @@ textarea {
     height: 150px;
 }
 
+#gist_title{
+    font-size: large;
+}
+
 button {
     width: 100%;
 }

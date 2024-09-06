@@ -42,10 +42,8 @@
 
     <div class="row">
         <div class="col-12">
-            <span id="logo"></span>
-            <a href="${pageContext.request.contextPath}/home?filter=L3"><h1 class="main">MIAGE Code Crafting</h1>
-            </a>
-            <span id="gist_title"></span></h1>
+            <span id="logo"></span> <span id="gist_title"></span>
+
         </div>
     </div>
     <div class="row" id="editor-row">
@@ -63,6 +61,8 @@
 
 
                         <li><a class="dropdown-item btn btn-secondary" id="gistsave">Save Code
+                        </a></li>
+                        <li hidden><a class="dropdown-item btn btn-secondary" id="gistupdate">Update Code
                         </a></li>
                         <li><a class="dropdown-item btn btn-secondary" id="show-my-snippets"
                                href="${codeSnippetAPIURL}/user/me">My Saved Code
@@ -161,6 +161,8 @@
         </div>
     </div>
 
+    <input type="text" id="snippetId" hidden>
+    <input type="text" id="preferred_name" value="${preferred_name}" hidden>
 
 </div>
 
@@ -215,48 +217,84 @@
     const octokit = new Octokit({});
 
 
+    function updatedPageContentFromExternalSource(content, comments, expectedOutput, title, id, owner) {
+        document.getElementById("btn-instructions").hidden = false;
+
+        document.getElementById("snippetId").value = id;
+        if (document.getElementById("preferred_name").value === owner) {
+            document.getElementById("gistupdate").parentElement.hidden = false;
+        }
+
+        if (comments != null && comments !== "") {
+            document.getElementById("instructions-text").innerHTML = marked.parse(comments);
+
+
+        }
+
+        if (title != null && title !== "") {
+            document.getElementById("gist_title").innerHTML = title;
+        }
+
+        if ((updated == null || updated === false)) {
+
+            ace.edit("editor").getSession().setValue(content);
+        }
+
+        if (expectedOutput != null && expectedOutput !== "") {
+            document.querySelector('#answers').value = expectedOutput;
+            document.querySelector("#expected-output").hidden = false;
+        }
+
+        putBackCursorPosition();
+    }
+
     if (gistId != null) {
         const gist = await octokit.request('GET /gists/{gist_id}', {
             gist_id: gistId
         });
-        document.getElementById("btn-instructions").hidden = false;
 
-
-        var comments = Object.entries(gist.data.files).find(entry => entry[1].filename == "Comments.md");
-        if (comments !== undefined && comments.length > 0) {
-            comments = comments[1].content;
-            if (comments != null && comments != "") {
-                document.getElementById("instructions-text").innerHTML = marked.parse(comments);
-
-
-            }
+        let content = Object.entries(gist.data.files).find(entry => entry[1].language === "Java")
+        if (content != null && content.length > 1) {
+            content = content[1].content
+        } else {
+            content = "";
         }
-
-        document.getElementById("btn-instructions").setAttribute("href", gist.data.html_url + "#file-comments-md");
-        document.getElementById("btn-instructions").setAttribute("title", gist.data.html_url + "#file-comments-md");
-        if ((updated == null || updated == false)) {
-
-            ace.edit("editor").getSession().setValue(Object.entries(gist.data.files).find(entry => entry[1].language == "Java")[1].content);
-            document.querySelector("span#gist_title").innerHTML = gist.data.description;
-
-            var expectedOutput = Object.entries(gist.data.files).find(entry => entry[1].filename == "answers.txt");
-            if (expectedOutput !== undefined && expectedOutput.length > 0) {
-                expectedOutput = expectedOutput[1].content;
-                if (expectedOutput != null && expectedOutput != "") {
-                    document.querySelector('#answers').value = expectedOutput;
-                    document.querySelector("#expected-output").hidden = false;
-                }
-            }
+        let comments = Object.entries(gist.data.files).find(entry => entry[1].filename === "Comments.md");
+        if (comments != null && comments.length > 1) {
+            comments = comments[1].content
+        } else {
+            comments = "";
         }
-
-        putBackCursorPosition();
+        let expectedOutput = Object.entries(gist.data.files).find(entry => entry[1].filename === "answers.txt");
+        if (expectedOutput != null && expectedOutput.length > 1) {
+            expectedOutput = expectedOutput[1].content
+        } else {
+            expectedOutput = "";
+        }
+        updatedPageContentFromExternalSource(content, comments, expectedOutput);
     } else if (snipId != null) {
         snippet_auth("${codeSnippetAPIURL}");
         getSnippet(snipId).then(response => {
             if (response.ok) {
                 response.json().then((snippet) => {
-                    ace.edit("editor").getSession().setValue(snippet.files[0].content);
+                    let content = undefined;
+                    let answers = undefined;
+                    let instructions = undefined;
+                    let title = snippet.title + " (" + snippet.owner + ")";
+                    for (let file of snippet.files) {
+                        if (file.name === "Code.java") {
+                            content = file.content;
+                        } else if (file.name === "answers.txt") {
+                            answers = file.content;
+                        } else if (file.name === "Comments.md") {
+                            instructions = file.content;
+                        }
+                    }
+
+                    updatedPageContentFromExternalSource(content, instructions, answers, title, snippet.id,snippet.owner);
+
                 });
+
             }
         })
 
@@ -379,26 +417,6 @@
         }
 
 
-        // enable save if github is authorized
-        if (localStorage.getItem("access_token") != null) {
-
-
-            document.querySelectorAll("#gistupdate").forEach(e => e.addEventListener("click",
-                function onGistUpdateClicked() {
-                    updateGistContent(ace.edit("editor").getValue(), localStorage.getItem("access_token"), "${gistId}");
-                }
-            ));
-
-
-            document.querySelector("#ghauth").innerHTML = "github log out";
-
-            document.querySelector("#ghauth").addEventListener("click", function () {
-                localStorage.removeItem("access_token");
-                location.reload();
-            }, true);
-        }
-
-
         ace.edit("editor").on('change', e => {
             localStorage.setItem("code", ace.edit("editor").getValue());
             for (let m of Object.entries(ace.edit("editor").getSession().getMarkers(true))) {
@@ -515,11 +533,11 @@
 
     import {
         snippet_auth,
-        getMySnippets,
-        delSnippet,
         createSnippet,
         createFile,
-        createComment
+        createComment,
+        createMeta,
+        updateSnippet,
     } from "${codeSnippetAPIURL}/js/snippet.js";
 
     snippet_auth("${codeSnippetAPIURL}");
@@ -528,7 +546,7 @@
         function onGistSaveClicked() {
             let title = prompt('Give a title to your code snippet');
 
-            createSnippet(title, [createFile("Code.java", ace.edit("editor").getSession().getValue())], []).then(response => {
+            createSnippet(title, [createFile("Code.java", ace.edit("editor").getSession().getValue()), createFile("Comments.md", document.getElementById("instructions-text").innerHTML)]).then(response => {
                 if (response.ok) {
                     if (window.confirm("Code saved, open it on external website?")) {
                         window.open(response.headers.get("Location"), "_blank");
@@ -541,11 +559,40 @@
         }
     ));
 
+    document.querySelectorAll("#gistupdate").forEach(e => e.addEventListener("click",
+        function onSnipUpdatedClicked() {
+            const titleFromHTML = document.getElementById("gist_title").innerHTML;
+
+            const title = titleFromHTML.substring(0, titleFromHTML.lastIndexOf('(')).trim();
+
+            const files = [createFile("Code.java", ace.edit("editor").getSession().getValue()),
+                createFile("Comments.md", document.getElementById("instructions-text").innerHTML)];
+            const answers = document.getElementById("answers").innerHTML;
+            if (answers != null && answers !== "") {
+                files.push(createFile("answers.txt", answers));
+            }
+
+
+            updateSnippet(document.getElementById("snippetId").value, title, files, [], [createMeta("creator", "java.miage.dev")]
+            ).then(response => {
+                if (response.ok) {
+                    if (window.confirm("Code saved, open it on external website?")) {
+                        window.open(response.headers.get("Location"), "_blank");
+                    }
+
+                } else {
+                    alert("failed to save code snippet");
+                }
+            });
+        }
+    ));
+
+
     document.querySelectorAll("#needHelp").forEach(e => e.addEventListener("click",
         function onGistSaveClicked() {
             let helpRequestComment = prompt('Explain why you need help');
 
-            createSnippet("help requested", [createFile("Code.java", ace.edit("editor").getSession().getValue())], [createComment(helpRequestComment)]).then(response => {
+            createSnippet("help requested", [createFile("Code.java", ace.edit("editor").getSession().getValue())], [createComment(helpRequestComment)], [createMeta("helpNeeded", "true")]).then(response => {
                 if (response.ok) {
                     if (window.confirm("Code saved, open it on external website?")) {
                         window.open(response.headers.get("Location"), "_blank");

@@ -71,6 +71,7 @@ public class JWTFilter implements Filter {
 
             CheckClaimResource checkClaimResource = target.proxy(CheckClaimResource.class);
             Response resp = checkClaimResource.checkAuthorization("Bearer " + jWTtoken);
+
             if (resp.getStatus() == 200) {
                 var cookie = new Cookie("auth-token", jWTtoken);
                 cookie.setSecure(true);
@@ -80,6 +81,9 @@ public class JWTFilter implements Filter {
                 response.addCookie(cookie);
                 request.setAttribute("authToken", jWTtoken);
                 request.getSession(true).setAttribute("authToken", jWTtoken);
+                request.getSession(true).setAttribute("preferred_name", resp.getHeaderString("preferred_name"));
+                //not used now, but may come handy
+                //request.getSession(true).setAttribute("groups", resp.getHeaderString("groups"));
                 chain.doFilter(request, response);
                 return;
             }
