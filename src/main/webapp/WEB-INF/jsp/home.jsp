@@ -50,7 +50,7 @@
 
     <c:if test="${authToken!=null}">
     setupEventChannel("${eventSinkWsAddress}", "${authToken}", "javarunner", function () {
-        let payload = {"url": window.location};
+        let payload = {"url": window.location.toString()};
         logEvent("java-runner-home-loaded", payload);
     })
     </c:if>
@@ -206,7 +206,7 @@
           <div class="accordion-item">
             <h2 class="accordion-header" id="heading-\${promo}">
               <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-\${promo}" aria-expanded="true" aria-controls="collapse-\${promo}">
-                Promo: \${promo}
+                \${promo}
               </button>
             </h2>
             <div id="collapse-\${promo}" class="accordion-collapse collapse" aria-labelledby="heading-\${promo}" data-bs-parent="#accordionExample">
@@ -218,7 +218,7 @@
                     if (course !== "") {
                         html += `
             <div class="mb-3">
-                <h5 class="text-primary border-bottom pb-2">Course: \${course}</h5>
+                <h5 class="text-primary border-bottom pb-2">\${course}</h5>
             </div>
           `;
                     }
@@ -227,7 +227,7 @@
                         if (section !== "") {
                             html += `
                 <div class="mb-2">
-                    <h6 class="text-secondary">Section: \${section}</h6>
+                    <h6 class="text-secondary">\${section}</h6>
                     <ul class="list-group">
             `;
 

@@ -33,7 +33,7 @@
 
 
     <link href="${pageContext.request.contextPath}/resources/css/style.css" rel="stylesheet">
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 
 </head>
 <body>
@@ -60,23 +60,38 @@
                     <ul class="dropdown-menu">
 
 
-                        <li><a class="dropdown-item btn btn-secondary" id="gistsave">Save Code
+                        <li><a class="dropdown-item btn btn-secondary" id="gistsave"><i
+                                class="fa-solid fa-floppy-disk"></i></i> &nbsp;Sauvegarder le code
                         </a></li>
-                        <li hidden><a class="dropdown-item btn btn-secondary" id="gistupdate">Update Code
+                        <li hidden><a class="dropdown-item btn btn-secondary" id="gistupdate"><i
+                                class="fa-solid fa-pen"></i>&nbsp;Mettre à jour le code
                         </a></li>
                         <li><a class="dropdown-item btn btn-secondary" id="show-my-snippets"
-                               href="${codeSnippetAPIURL}/user/me">My Saved Code
+                               href="${codeSnippetAPIURL}/user/me"><i class="fa-solid fa-eye"></i>&nbsp;Voir mes codes
+                            sauvegardés
                         </a></li>
                         <li>
                             <hr class="dropdown-divider">
                         </li>
                         <li>
-                            <a class="dropdown-item btn btn-secondary" id="save-maven">Download as Maven
+                            <a class="dropdown-item btn btn-secondary" id="save-maven"><i
+                                    class="fa-solid fa-download"></i>&nbsp;Télécharger le projet
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item btn btn-secondary" id="needHelp">Request Help With this code
+                            <a class="dropdown-item btn btn-secondary" id="needHelp"><i
+                                    class="fa-solid fa-hand-holding-hand"></i>&nbsp;Demander de l'aide
                             </a>
+                        </li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li>
+                            <a class="dropdown-item btn btn-secondary" id="newtab"
+                               onclick="window.open(window.location.href, '_blank').focus();"><i
+                                    class="fas fa-external-link-alt"></i>&nbsp;Ouvrir dans un nouvel onglet
+                            </a>
+
                         </li>
 
 
@@ -85,10 +100,11 @@
 
                 <button type="button" id="btn-instructions" class="btn btn-sm btn-info" type="submit"
                         data-bs-toggle="collapse" data-bs-target="#collapseInstructions" aria-expanded="false"
-                        aria-controls="collapseInstructions" hidden>Get
+                        aria-controls="collapseInstructions" hidden><i class="fa-solid fa-book"></i>&nbsp;Voir les
                     Instructions
                 </button>
-                <button type="button" id="btn-run" class="btn btn-sm btn-primary" type="submit">Run (CTRL+ENTER)
+                <button type="button" id="btn-run" class="btn btn-sm btn-primary" type="submit"><i
+                        class="fa-solid fa-play"></i>&nbsp;Exécuter (CTRL+ENTER)
                 </button>
 
 
@@ -131,17 +147,17 @@
             <c:choose>
                 <c:when test="${empty success}">
                     <div class="alert alert-secondary" role="alert">
-                        Ready to code!
+                        Prêt à code!
                     </div>
                 </c:when>
                 <c:when test="${success==false}">
                     <div class="alert alert-danger" role="alert">
-                        Something went wrong
+                        Quelque chose s'est mal passé
                     </div>
                 </c:when>
                 <c:otherwise>
                     <div class="alert alert-success" role="alert">
-                        Execution successful
+                        Exécution terminée!
                     </div>
                 </c:otherwise>
             </c:choose>
@@ -291,7 +307,7 @@
                         }
                     }
 
-                    updatedPageContentFromExternalSource(content, instructions, answers, title, snippet.id,snippet.owner);
+                    updatedPageContentFromExternalSource(content, instructions, answers, title, snippet.id, snippet.owner);
 
                 });
 
@@ -573,8 +589,7 @@
             }
 
 
-            updateSnippet(document.getElementById("snippetId").value, title, files, [], [createMeta("creator", "java.miage.dev")]
-            ).then(response => {
+            updateSnippet(document.getElementById("snippetId").value, title, files).then(response => {
                 if (response.ok) {
                     if (window.confirm("Code saved, open it on external website?")) {
                         window.open(response.headers.get("Location"), "_blank");
