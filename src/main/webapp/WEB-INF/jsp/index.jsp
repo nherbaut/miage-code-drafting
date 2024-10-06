@@ -560,20 +560,22 @@
 
     document.querySelectorAll("#gistsave").forEach(e => e.addEventListener("click",
         function onGistSaveClicked() {
-            let title = prompt('Give a title to your code snippet');
+            let title = prompt('Donnez un titre à votre code');
 
             createSnippet(title, [createFile("Code.java", ace.edit("editor").getSession().getValue()), createFile("Comments.md", document.getElementById("instructions-text").innerHTML)]).then(response => {
                 if (response.ok) {
-                    if (window.confirm("Code saved, open it on external website?")) {
-                        window.open(response.headers.get("Location"), "_blank");
-                    }
-
+                    response.text()
+                        .then(text => {
+                            window.alert("Code sauvegardé, vous pouvez partager l'URL après le rafraîchissement");
+                            window.location = "/?snipId=" + text;
+                        });
                 } else {
                     alert("failed to save code snippet");
                 }
             });
         }
-    ));
+    ))
+    ;
 
     document.querySelectorAll("#gistupdate").forEach(e => e.addEventListener("click",
         function onSnipUpdatedClicked() {
@@ -591,10 +593,7 @@
 
             updateSnippet(document.getElementById("snippetId").value, title, files).then(response => {
                 if (response.ok) {
-                    if (window.confirm("Code saved, open it on external website?")) {
-                        window.open(response.headers.get("Location"), "_blank");
-                    }
-
+                    alert("Mise à jour effectuée!");
                 } else {
                     alert("failed to save code snippet");
                 }
